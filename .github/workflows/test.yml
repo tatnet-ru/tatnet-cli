@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Формат
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "не отформатировано:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Сборка
+        run: go build ./...
+
+      # Гейт покрытия живёт здесь: он сверяет дерево команд с вшитым
+      # контрактом и с контрактом версии tatnet-go из go.mod.
+      - name: Тесты
+        run: go test ./... -v
+
+      - name: Дерево команд строится без паники
+        run: go run ./cmd/tatnet --help > /dev/null
