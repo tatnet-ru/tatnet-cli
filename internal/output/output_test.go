@@ -113,3 +113,39 @@ func TestParseFormatRejectsUnknown(t *testing.T) {
 		}
 	}
 }
+
+// Пустой список у /v1 приходит и тогда, когда ключу не разрешено видеть
+// записи: коллекции фильтруются политикой, а не отвечают 403. Выдавать
+// «не смогли узнать» за «нет данных» нельзя, поэтому подсказка обязательна —
+// и обязана идти в stderr, чтобы не попадать в разбор вывода.
+func TestEmptyListHintsAtPermissionsOnStderr(t *testing.T) {
+	var out, errOut bytes.Buffer
+	p := Printer{Out: &out, Err: &errOut, Format: Table}
+	if err := p.List(nil, []Column{Col("имя", "name")}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "ничего не найдено") {
+		t.Errorf("stdout: %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "auth status") {
+		t.Errorf("подсказки о правах нет в stderr: %q", errOut.String())
+	}
+	if strings.Contains(out.String(), "auth status") {
+		t.Errorf("подсказка попала в stdout и испортит разбор: %q", out.String())
+	}
+}
+
+// В машинных форматах пустота обязана оставаться пустым массивом.
+func TestEmptyListStaysEmptyArrayInJSON(t *testing.T) {
+	var out, errOut bytes.Buffer
+	p := Printer{Out: &out, Err: &errOut, Format: JSON}
+	if err := p.List(nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.TrimSpace(out.String()); got != "[]" {
+		t.Errorf("пустой список выведен как %q — ожидался [], иначе jq length падает", got)
+	}
+	if errOut.Len() != 0 {
+		t.Errorf("в машинном режиме подсказка не нужна: %q", errOut.String())
+	}
+}

@@ -60,6 +60,7 @@ func WideCol(title, path string) Column { return Column{Title: title, Path: path
 // Printer печатает результат одной команды.
 type Printer struct {
 	Out    io.Writer
+	Err    io.Writer
 	Format Format
 }
 
@@ -67,6 +68,11 @@ type Printer struct {
 // а не пустотой: «ничего не вывелось» иначе неотличимо от «команда не
 // отработала».
 func (p Printer) List(items []any, cols []Column) error {
+	if items == nil {
+		// Пустой СПИСОК, а не null: иначе `... -o json | jq length`
+		// спотыкается ровно там, где записей не оказалось.
+		items = []any{}
+	}
 	switch p.Format {
 	case JSON:
 		return p.writeJSON(items)
@@ -74,8 +80,20 @@ func (p Printer) List(items []any, cols []Column) error {
 		return p.writeYAML(items)
 	}
 	if len(items) == 0 {
-		_, err := fmt.Fprintln(p.Out, "ничего не найдено")
-		return err
+		if _, err := fmt.Fprintln(p.Out, "ничего не найдено"); err != nil {
+			return err
+		}
+		// Пустой список у /v1 означает ещё и «ключу не видно»: коллекции
+		// фильтруются по политике ключа, а не отвечают 403 — так задумано,
+		// чтобы ключ с привязкой к ресурсам видел свой срез. Значит, «нет
+		// записей» и «не смогли узнать» приходят одинаково, и CLI не вправе
+		// выдавать второе за первое. Подсказка идёт в stderr, чтобы не
+		// попасть в разбор вывода.
+		if p.Err != nil {
+			fmt.Fprintln(p.Err, "Если записи ожидались — пустой список приходит и тогда, "+
+				"когда ключу не разрешено их видеть: tatnet auth status")
+		}
+		return nil
 	}
 	return p.table(items, cols)
 }

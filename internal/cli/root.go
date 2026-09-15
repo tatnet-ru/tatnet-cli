@@ -107,7 +107,7 @@ func setup(cmd *cobra.Command, env *Env, g *globalFlags) error {
 	env.Project = first(g.project, os.Getenv("TATNET_PROJECT"), profile.Project)
 	env.Timeout = g.timeout
 	env.Debug = g.debug
-	env.Printer = output.Printer{Out: cmd.OutOrStdout(), Format: format}
+	env.Printer = output.Printer{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), Format: format}
 	env.client = nil
 	return nil
 }
