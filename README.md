@@ -57,7 +57,7 @@ npm view tatnet dist.integrity  # хеш тарболла в реестре
 (файлы несут номер версии, подставьте свою):
 
 ```bash
-VER=0.1.5
+VER=0.1.6
 curl -sSL "https://github.com/tatnet-ru/tatnet-cli/releases/download/v$VER/tatnet_${VER}_linux_amd64.tar.gz" | tar xz
 sudo install tatnet /usr/local/bin/
 ```
@@ -211,3 +211,7 @@ go run ./cmd/tatnet --help
 | Контракт OpenAPI | [api.tatnet.ru/v1/openapi.json](https://api.tatnet.ru/v1/openapi.json) |
 | Go-клиент того же API | [tatnet-ru/tatnet-go](https://github.com/tatnet-ru/tatnet-go) |
 | Пакет в npm | [npmjs.com/package/tatnet](https://www.npmjs.com/package/tatnet) |
+
+## Лицензия
+
+[Apache-2.0](LICENSE).

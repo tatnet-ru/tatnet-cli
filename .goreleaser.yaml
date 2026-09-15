@@ -33,6 +33,7 @@ archives:
     name_template: "tatnet_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
+      - LICENSE
 
 nfpms:
   - id: tatnet
@@ -41,6 +42,7 @@ nfpms:
     homepage: https://tatnet.ru
     maintainer: TatNet <support@tatnet.ru>
     description: Консольный клиент публичного API TatNet
+    license: Apache-2.0
     formats: [deb, rpm]
 
 checksum:

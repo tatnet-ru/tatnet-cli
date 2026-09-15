@@ -74,6 +74,7 @@ for spec in "${PLATFORMS[@]}"; do
   exe="tatnet"
   [[ "$nodeos" == "win32" ]] && exe="tatnet.exe"
   cp "$WORK/x-$pkg/$exe" "$dir/bin/$exe"
+  cp LICENSE "$dir/LICENSE"
   chmod 0755 "$dir/bin/$exe"
 
   python3 - "$dir/package.json" "$pkg" "$VERSION" "$nodeos" "$nodearch" <<'PY'
@@ -83,10 +84,12 @@ json.dump({
     "name": name,
     "version": version,
     "description": f"Бинарник tatnet для {nodeos}-{nodearch}",
+    "homepage": "https://tatnet.ru",
+    "license": "Apache-2.0",
     "repository": {"type": "git", "url": "git+https://github.com/tatnet-ru/tatnet-cli.git"},
     "os": [nodeos],
     "cpu": [nodearch],
-    "files": ["bin"],
+    "files": ["bin", "LICENSE"],
     # Yarn PnP иначе держал бы бинарник внутри zip, откуда его не запустить.
     "preferUnplugged": True,
 }, open(path, "w"), ensure_ascii=False, indent=2)
@@ -100,6 +103,7 @@ done
 mkdir -p "$DIST/tatnet/bin"
 cp npm/tatnet/bin/tatnet.js "$DIST/tatnet/bin/tatnet.js"
 cp README.md "$DIST/tatnet/README.md"
+cp LICENSE "$DIST/tatnet/LICENSE"
 python3 - "$DIST/tatnet/package.json" "$VERSION" <<'PY'
 import json, sys
 path, version = sys.argv[1:3]
