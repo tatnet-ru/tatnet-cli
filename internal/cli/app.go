@@ -126,6 +126,7 @@ func appCreateCommand(env *Env) *cobra.Command {
 		buildCmd, installCmd, startCmd, outDir string
 		rootDir, predeploy, readiness          string
 		connection, cluster, vpc, nodejs       string
+		sourceType                             string
 		replicas, vcpu, memory                 int
 		autoDeploy                             bool
 	)
@@ -148,7 +149,7 @@ func appCreateCommand(env *Env) *cobra.Command {
 				AppType:          optStr(cmd, "type", appType),
 				RuntimeType:      optStr(cmd, "runtime", runtime),
 				Framework:        optStr(cmd, "framework", framework),
-				SourceType:       optStr(cmd, "source-type", ""),
+				SourceType:       optStr(cmd, "source-type", sourceType),
 				RepoFullName:     optStr(cmd, "repo", repo),
 				Branch:           optStr(cmd, "branch", branch),
 				GitProvider:      optStr(cmd, "git-provider", provider),
@@ -180,6 +181,7 @@ func appCreateCommand(env *Env) *cobra.Command {
 	f.StringVar(&appType, "type", "", "тип: static, ssr, backend")
 	f.StringVar(&runtime, "runtime", "", "рантайм")
 	f.StringVar(&framework, "framework", "", "фреймворк")
+	f.StringVar(&sourceType, "source-type", "", "источник: git или docker_image")
 	f.StringVar(&repo, "repo", "", "репозиторий вида owner/name")
 	f.StringVar(&branch, "branch", "", "ветка")
 	f.StringVar(&provider, "git-provider", "", "провайдер: github, gitlab, gitea, gitverse, gitflic")

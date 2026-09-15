@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/tatnet-ru/tatnet-go/tatnet"
 	"golang.org/x/term"
 
 	"github.com/tatnet-ru/tatnet-cli/internal/config"
@@ -54,7 +55,10 @@ func newAuthLoginCommand(env *Env) *cobra.Command {
 
 			p := env.Profile
 			p.APIKey = key
-			if env.BaseURL != "" {
+			// Адрес пишем в профиль, только если он НЕ боевой по умолчанию:
+			// иначе профиль закрепил бы сегодняшний адрес навсегда и пережил
+			// бы его смену в клиенте.
+			if env.BaseURL != "" && env.BaseURL != tatnet.DefaultBaseURL {
 				p.BaseURL = env.BaseURL
 			}
 			env.Cfg.Set(env.ProfileName, p)

@@ -9,12 +9,17 @@
 
 ## Установка
 
-Бинарник с [релизов](https://github.com/tatnet-ru/tatnet-cli/releases):
+Бинарник с [релизов](https://github.com/tatnet-ru/tatnet-cli/releases)
+(файлы несут номер версии, подставьте свою):
 
 ```bash
-curl -sSL https://github.com/tatnet-ru/tatnet-cli/releases/latest/download/tatnet_linux_amd64.tar.gz | tar xz
+VER=0.1.1
+curl -sSL "https://github.com/tatnet-ru/tatnet-cli/releases/download/v$VER/tatnet_${VER}_linux_amd64.tar.gz" | tar xz
 sudo install tatnet /usr/local/bin/
 ```
+
+Либо пакетом — `tatnet_${VER}_linux_amd64.deb` / `.rpm`. Рядом с
+артефактами лежит `checksums.txt`.
 
 Либо из исходников:
 
