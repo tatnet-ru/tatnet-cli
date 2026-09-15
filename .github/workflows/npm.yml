@@ -52,10 +52,11 @@ jobs:
       - name: Проверка запуском
         run: |
           set -euo pipefail
+          mkdir -p npm/pack
           cd npm/dist
-          main=$(npm pack ./tatnet --silent --pack-destination .)
-          plat=$(npm pack ./tatnet-cli-linux-x64 --silent --pack-destination .)
-          mkdir smoke && cd smoke
+          main=$(npm pack ./tatnet --silent --pack-destination ../pack)
+          plat=$(npm pack ./tatnet-cli-linux-x64 --silent --pack-destination ../pack)
+          mkdir -p ../pack/smoke && cd ../pack/smoke
           npm init -y > /dev/null
           npm install --no-audit --no-fund "../$plat" "../$main"
           out=$(./node_modules/.bin/tatnet --version)
@@ -83,18 +84,55 @@ jobs:
         if: steps.token.outputs.present == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.v.outputs.version }}
         run: |
           set -euo pipefail
+
+          # Уже опубликованное пропускается, а не роняет прогон: после
+          # частичного отказа повтор обязан доходить до конца, иначе
+          # выбраться из полупубликации можно только руками.
+          publish() {
+            local dir="$1" name
+            name=$(node -p "require('./$dir/package.json').name")
+            if npm view "$name@$VERSION" version > /dev/null 2>&1; then
+              echo "уже в реестре, пропускаю: $name@$VERSION"
+              return 0
+            fi
+            (cd "$dir" && npm publish --access public)
+          }
+
           # Платформенные первыми: главный пакет на них ссылается точной
           # версией, обратный порядок оставил бы в реестре нерабочий tatnet.
-          for p in npm/dist/tatnet-cli-*; do
-            (cd "$p" && npm publish --access public)
+          # Косая черта в маске — только каталоги: иначе сюда попал бы
+          # любой .tgz, оказавшийся рядом, и node не нашёл бы в нём манифест.
+          for p in npm/dist/tatnet-cli-*/; do
+            publish "${p%/}"
           done
-          (cd npm/dist/tatnet && npm publish --access public)
+          publish npm/dist/tatnet
 
+      # always(), иначе при отказе публикации сводка пустая — а объяснить
+      # нужно именно отказ.
       - name: Итог
+        if: always()
         run: |
-          if [ "${{ steps.token.outputs.present }}" = "true" ]; then
+          if [ "${{ job.status }}" = "failure" ]; then
+            {
+              echo "### Публикация в npm не прошла"
+              echo
+              echo "Частая причина — токен без обхода двухфакторной проверки:"
+              echo '`403 ... granular access token with bypass 2fa enabled is required`.'
+              echo
+              echo "Нужен **granular access token** на npmjs.com с включённым"
+              echo "обходом 2FA. Для ПЕРВОЙ публикации его область должна быть"
+              echo "«All packages» — пакетов с такими именами в реестре ещё нет,"
+              echo "и по имени область не выдаётся."
+              echo
+              echo "Порядок защищает от полупубликации: платформенные пакеты"
+              echo "уходят раньше главного, поэтому нерабочего \`tatnet\` в"
+              echo "реестре не появится. Повтор прогона безопасен — уже"
+              echo "опубликованные версии пропускаются."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.token.outputs.present }}" = "true" ]; then
             echo "### Опубликовано в npm: tatnet@${{ steps.v.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo 'npx tatnet --help' >> "$GITHUB_STEP_SUMMARY"
