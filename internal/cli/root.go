@@ -42,8 +42,8 @@ func NewRootCommand(version string) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "tatnet",
 		Short: "Управление облаком TatNet из терминала",
-		Long: "tatnet — клиент публичного API TatNet (/v1).\n\n" +
-			"Ключ создаётся в панели (Аккаунт → API-ключи) и сохраняется\n" +
+		Long: "tatnet — клиент публичного API облака TatNet (https://tatnet.ru).\n\n" +
+			"Ключ создаётся в панели — https://min.tatnet.ru/api-keys — и сохраняется\n" +
 			"командой `tatnet auth login`. Ключ принадлежит одному аккаунту\n" +
 			"и несёт свою политику прав, поэтому аккаунт нигде не указывается.\n\n" +
 			"Операции, для которых ещё нет своей команды, доступны через\n" +

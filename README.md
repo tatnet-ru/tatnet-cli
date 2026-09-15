@@ -1,7 +1,12 @@
 # tatnet — консольный клиент TatNet
 
-`tatnet` управляет облаком TatNet из терминала: виртуальные машины,
-приложения, базы Postgres и Valkey, DNS, объектное хранилище, SSH-ключи.
+[tatnet.ru](https://tatnet.ru) · [панель](https://min.tatnet.ru) ·
+[документация](https://docs.tatnet.ru) ·
+[справочник API](https://api.tatnet.ru/v1/docs)
+
+`tatnet` управляет облаком [TatNet](https://tatnet.ru) из терминала:
+виртуальные машины, приложения, базы Postgres и Valkey, DNS, объектное
+хранилище, SSH-ключи.
 
 Построен поверх [tatnet-go](https://github.com/tatnet-ru/tatnet-go) —
 клиента, генерируемого из контракта `/v1`. Рукописного HTTP здесь нет, и
@@ -68,8 +73,9 @@ go install github.com/tatnet-ru/tatnet-cli/cmd/tatnet@latest
 
 ## Начало работы
 
-Ключ создаётся в панели: **Аккаунт → API-ключи**. Ключ принадлежит одному
-аккаунту и несёт свою политику прав, поэтому аккаунт нигде не указывается.
+Ключ создаётся в панели: **[min.tatnet.ru/api-keys](https://min.tatnet.ru/api-keys)**.
+Ключ принадлежит одному аккаунту и несёт свою политику прав, поэтому аккаунт
+нигде не указывается.
 
 ```bash
 tatnet auth login                  # спросит ключ, проверит его и сохранит
@@ -189,3 +195,16 @@ go build ./...
 go test ./...
 go run ./cmd/tatnet --help
 ```
+
+## Ссылки
+
+| | |
+|---|---|
+| Облако TatNet | [tatnet.ru](https://tatnet.ru) |
+| Панель управления | [min.tatnet.ru](https://min.tatnet.ru) |
+| Ключи доступа | [min.tatnet.ru/api-keys](https://min.tatnet.ru/api-keys) |
+| Документация платформы | [docs.tatnet.ru](https://docs.tatnet.ru) |
+| Справочник `/v1` | [api.tatnet.ru/v1/docs](https://api.tatnet.ru/v1/docs) |
+| Контракт OpenAPI | [api.tatnet.ru/v1/openapi.json](https://api.tatnet.ru/v1/openapi.json) |
+| Go-клиент того же API | [tatnet-ru/tatnet-go](https://github.com/tatnet-ru/tatnet-go) |
+| Пакет в npm | [npmjs.com/package/tatnet](https://www.npmjs.com/package/tatnet) |

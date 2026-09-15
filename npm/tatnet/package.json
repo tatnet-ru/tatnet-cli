@@ -1,7 +1,7 @@
 {
   "name": "tatnet",
   "version": "0.0.0-dev",
-  "description": "Консольный клиент публичного API TatNet",
+  "description": "Консольный клиент облака TatNet (tatnet.ru)",
   "keywords": [
     "tatnet",
     "cli",
@@ -11,7 +11,7 @@
     "dns",
     "s3"
   ],
-  "homepage": "https://github.com/tatnet-ru/tatnet-cli#readme",
+  "homepage": "https://tatnet.ru",
   "bugs": "https://github.com/tatnet-ru/tatnet-cli/issues",
   "repository": {
     "type": "git",

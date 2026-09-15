@@ -43,7 +43,7 @@ func (e ErrNoAPIKey) Error() string {
 		"  tatnet auth login            — сохранить ключ в профиль\n"+
 		"  export TATNET_API_KEY=tn_…   — на время сессии\n"+
 		"  tatnet --api-key tn_… …      — на один вызов\n"+
-		"Ключ создаётся в панели: Аккаунт → API-ключи", e.Profile)
+		"Ключ создаётся в панели: https://min.tatnet.ru/api-keys", e.Profile)
 }
 
 // Client собирает клиент по реквизитам профиля. Один на вызов команды.
