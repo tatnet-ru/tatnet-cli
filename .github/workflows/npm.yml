@@ -114,6 +114,39 @@ jobs:
           done
           publish npm/dist/tatnet
 
+          # Видимость выставляется отдельно и явно: при первой публикации
+          # пакета в скоуп организации --access public не гарантирует
+          # публичность — пакеты легли приватными, и лог при этом рапортовал
+          # «public access».
+          for p in npm/dist/plat-*/; do
+            name=$(node -p "require('./${p%/}/package.json').name")
+            npm access set status=public "$name"
+          done
+
+      # Отдельная проверка АНОНИМНЫМ запросом: лог публикации уже один раз
+      # сказал «успех» о пакетах, которых снаружи не было видно. Верить надо
+      # тому, что увидит устанавливающий, а не тому, что напечатал publish.
+      - name: Доступность снаружи
+        if: steps.token.outputs.present == 'true'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          fail=0
+          for name in tatnet @tatnet/cli-darwin-arm64 @tatnet/cli-darwin-x64 \
+                      @tatnet/cli-linux-arm64 @tatnet/cli-linux-x64 \
+                      @tatnet/cli-win32-arm64 @tatnet/cli-win32-x64; do
+            url="https://registry.npmjs.org/$(printf '%s' "$name" | sed 's|/|%2F|')"
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "  видно всем: $name"
+            else
+              echo "  НЕ ВИДНО ($code): $name"
+              fail=1
+            fi
+          done
+          [ "$fail" = "0" ] || { echo "пакеты опубликованы, но снаружи недоступны" >&2; exit 1; }
+
       # always(), иначе при отказе публикации сводка пустая — а объяснить
       # нужно именно отказ.
       - name: Итог
