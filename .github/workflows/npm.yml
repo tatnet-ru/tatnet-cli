@@ -144,7 +144,11 @@ jobs:
           for name in tatnet @tatnet/cli-darwin-arm64 @tatnet/cli-darwin-x64 \
                       @tatnet/cli-linux-arm64 @tatnet/cli-linux-x64 \
                       @tatnet/cli-win32-arm64 @tatnet/cli-win32-x64; do
-            url="https://registry.npmjs.org/$(printf '%s' "$name" | sed 's|/|%2F|')"
+            # Адрес КОНКРЕТНОЙ версии, а не пакета: у снятого с публикации
+            # пакета остаётся надгробие — документ с пустым versions, который
+            # отдаётся с кодом 200. Проверка «документ есть» подтвердила бы
+            # доступность того, чего уже нет.
+            url="https://registry.npmjs.org/$(printf '%s' "$name" | sed 's|/|%2F|')/$VERSION"
             # Свежесозданный пакет расходится по раздаче не мгновенно:
             # первые минуты анонимный запрос честно отдаёт 404. Поэтому
             # проверка ждёт, а не выносит приговор с первой попытки.
