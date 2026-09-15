@@ -91,18 +91,31 @@ jobs:
           # Уже опубликованное пропускается, а не роняет прогон: после
           # частичного отказа повтор обязан доходить до конца, иначе
           # выбраться из полупубликации можно только руками.
+          # Признак «уже опубликовано» берётся из ОТВЕТА реестра на саму
+          # публикацию, а не из предварительного npm view: view не видит
+          # приватный пакет (токен без прав на организацию), возвращает 404,
+          # и пропуск не срабатывает — публикация упирается в «cannot publish
+          # over the previously published versions».
           publish() {
-            local dir="$1" name
+            local dir="$1" name out status
             name=$(node -p "require('./$dir/package.json').name")
-            if npm view "$name@$VERSION" version > /dev/null 2>&1; then
+            set +e
+            out=$( (cd "$dir" && npm publish --access public) 2>&1 )
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
+              echo "$out"
+              # Пауза между публикациями: за релиз уходит семь похожих имён,
+              # и очередь без задержки реестр принимает за спам.
+              sleep 20
+              return 0
+            fi
+            if printf '%s' "$out" | grep -q "cannot publish over the previously published versions"; then
               echo "уже в реестре, пропускаю: $name@$VERSION"
               return 0
             fi
-            (cd "$dir" && npm publish --access public)
-            # Пауза между публикациями: за один релиз уходит семь пакетов с
-            # почти одинаковыми именами, и очередь без задержки npm принимает
-            # за спам (403 «Package name triggered spam detection» на пятом).
-            sleep 20
+            echo "$out" >&2
+            return "$status"
           }
 
           # Платформенные первыми: главный пакет на них ссылается точной
