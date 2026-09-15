@@ -105,7 +105,7 @@ tatnet pg parameters get основная         # заданное рядом 
 tatnet pg ca основная --out ca.crt
 tatnet pg backup list основная
 
-tatnet dns record create example.com www A 185.152.80.60
+tatnet dns record create example.com www A 203.0.113.10
 tatnet s3 bucket create фото --public
 tatnet s3 object presign фото отчёт.pdf
 ```
@@ -129,15 +129,18 @@ tatnet s3 object presign фото отчёт.pdf
 пишется режимом 0600 — в нём ключ.
 
 ```yaml
-current: прод
+current: рабочий
 profiles:
-  прод:
+  рабочий:
     api_key: tn_live_…
     project: 7f3c9c1e-…
-  стенд:
+  второй-аккаунт:
     api_key: tn_live_…
-    base_url: https://api.stage.tatnet.ru/v1
 ```
+
+`base_url` в профиле нужен, только если вы ходите не в боевой API —
+например, в поднятый локально (`http://localhost:8000/v1`). По умолчанию
+адрес берётся из клиента и указывать его не нужно.
 
 ```bash
 tatnet profile list
