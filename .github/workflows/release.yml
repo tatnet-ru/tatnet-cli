@@ -6,6 +6,9 @@ on:
 
 permissions:
   contents: write
+  # Право на OIDC-токен нужно задаче npm для provenance-аттестации;
+  # вызываемый workflow не может получить больше, чем даёт вызывающий.
+  id-token: write
 
 jobs:
   release:

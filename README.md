@@ -22,15 +22,37 @@ npm i -g tatnet
 ```
 
 Бинарник качается не при установке, а приезжает готовым подпакетом на вашу
-платформу (`optionalDependencies` с полями `os`/`cpu`), поэтому работает и
-под `--ignore-scripts`, и из офлайн-кэша. Поддержаны linux, macOS и Windows
-на x64 и arm64.
+платформу (`@tatnet/cli-<os>-<arch>` в `optionalDependencies` с полями
+`os`/`cpu`), поэтому работает и под `--ignore-scripts`, и из офлайн-кэша.
+Поддержаны linux, macOS и Windows на x64 и arm64.
+
+### Что именно вы ставите
+
+В пакете лежит скомпилированный бинарник — как у `esbuild`, `swc`, `biome`
+и `turbo`. Проверить, что в нём, можно не на слово:
+
+```bash
+npm audit signatures            # подпись и происхождение пакета
+npm view tatnet dist.integrity  # хеш тарболла в реестре
+```
+
+Пакеты публикуются с **provenance-аттестацией**: npm подписывает связь
+«этот тарболл собран вот этим прогоном GitHub Actions из вот этого коммита
+публичного репозитория», и на странице пакета видно, каким именно. Сам
+бинарник при этом не собирается на месте публикации — он берётся из
+[релиза](https://github.com/tatnet-ru/tatnet-cli/releases) со сверкой
+`checksums.txt`, а релиз собирает goreleaser в открытом прогоне.
+
+Цепочка целиком проверяема снаружи: коммит → прогон сборки → артефакт
+релиза с контрольной суммой → тот же файл в пакете npm. Ничего не
+скачивается при установке и ничего не выполняется в `postinstall` — его
+здесь нет вовсе.
 
 Бинарником с [релизов](https://github.com/tatnet-ru/tatnet-cli/releases)
 (файлы несут номер версии, подставьте свою):
 
 ```bash
-VER=0.1.3
+VER=0.1.4
 curl -sSL "https://github.com/tatnet-ru/tatnet-cli/releases/download/v$VER/tatnet_${VER}_linux_amd64.tar.gz" | tar xz
 sudo install tatnet /usr/local/bin/
 ```
