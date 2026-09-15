@@ -9,11 +9,28 @@
 
 ## Установка
 
-Бинарник с [релизов](https://github.com/tatnet-ru/tatnet-cli/releases)
+Без установки вообще — если есть Node:
+
+```bash
+npx tatnet vm list
+```
+
+Постоянно:
+
+```bash
+npm i -g tatnet
+```
+
+Бинарник качается не при установке, а приезжает готовым подпакетом на вашу
+платформу (`optionalDependencies` с полями `os`/`cpu`), поэтому работает и
+под `--ignore-scripts`, и из офлайн-кэша. Поддержаны linux, macOS и Windows
+на x64 и arm64.
+
+Бинарником с [релизов](https://github.com/tatnet-ru/tatnet-cli/releases)
 (файлы несут номер версии, подставьте свою):
 
 ```bash
-VER=0.1.1
+VER=0.1.2
 curl -sSL "https://github.com/tatnet-ru/tatnet-cli/releases/download/v$VER/tatnet_${VER}_linux_amd64.tar.gz" | tar xz
 sudo install tatnet /usr/local/bin/
 ```
@@ -21,7 +38,7 @@ sudo install tatnet /usr/local/bin/
 Либо пакетом — `tatnet_${VER}_linux_amd64.deb` / `.rpm`. Рядом с
 артефактами лежит `checksums.txt`.
 
-Либо из исходников:
+Из исходников, если стоит Go:
 
 ```bash
 go install github.com/tatnet-ru/tatnet-cli/cmd/tatnet@latest

@@ -1,0 +1,95 @@
+name: npm
+
+# Отдельно от релиза намеренно: пакеты собираются из ОПУБЛИКОВАННЫХ
+# артефактов, поэтому их можно пересобрать и выложить для любой прошлой
+# версии, не выпуская новый тег.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег релиза, например v0.1.2"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+
+      - name: Версия
+        id: v
+        run: |
+          tag="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "версия: ${tag#v}"
+
+      - name: Сборка пакетов
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/build-npm.sh "${{ steps.v.outputs.version }}"
+
+      # Замер до публикации: пакет, который не запускается, публиковать незачем.
+      - name: Проверка запуском
+        run: |
+          set -euo pipefail
+          cd npm/dist
+          main=$(npm pack ./tatnet --silent --pack-destination .)
+          plat=$(npm pack ./tatnet-cli-linux-x64 --silent --pack-destination .)
+          mkdir smoke && cd smoke
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund "../$plat" "../$main"
+          out=$(./node_modules/.bin/tatnet --version)
+          echo "$out"
+          case "$out" in
+            *"${{ steps.v.outputs.version }}"*) echo "версия совпала" ;;
+            *) echo "бинарник отдал не ту версию" >&2; exit 1 ;;
+          esac
+          ./node_modules/.bin/tatnet api --list ssh-keys > /dev/null
+          echo "вшитый контракт читается"
+
+      - name: Есть ли токен npm
+        id: token
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Публикация в npm пропущена::Секрет NPM_TOKEN не задан. Пакеты собраны и проверены, но в реестр не отправлены. Добавьте токен: gh secret set NPM_TOKEN --repo tatnet-ru/tatnet-cli — и перезапустите этот workflow с нужным тегом."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Публикация
+        if: steps.token.outputs.present == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Платформенные первыми: главный пакет на них ссылается точной
+          # версией, обратный порядок оставил бы в реестре нерабочий tatnet.
+          for p in npm/dist/tatnet-cli-*; do
+            (cd "$p" && npm publish --access public)
+          done
+          (cd npm/dist/tatnet && npm publish --access public)
+
+      - name: Итог
+        run: |
+          if [ "${{ steps.token.outputs.present }}" = "true" ]; then
+            echo "### Опубликовано в npm: tatnet@${{ steps.v.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo 'npx tatnet --help' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### В npm НЕ опубликовано" >> "$GITHUB_STEP_SUMMARY"
+            echo "Пакеты собраны и проверены запуском, но секрета \`NPM_TOKEN\` нет." >> "$GITHUB_STEP_SUMMARY"
+          fi

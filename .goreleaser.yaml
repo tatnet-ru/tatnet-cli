@@ -14,7 +14,7 @@ builds:
     binary: tatnet
     env:
       - CGO_ENABLED=0
-    goos: [linux, darwin]
+    goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
     ldflags:
       - -s -w
@@ -26,6 +26,10 @@ builds:
 archives:
   - id: tatnet
     formats: [tar.gz]
+    # Windows ожидает zip: tar там есть с Windows 10, но привычка другая.
+    format_overrides:
+      - goos: windows
+        formats: [zip]
     name_template: "tatnet_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
