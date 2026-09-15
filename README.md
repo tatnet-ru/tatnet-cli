@@ -30,7 +30,7 @@ npm i -g tatnet
 (файлы несут номер версии, подставьте свою):
 
 ```bash
-VER=0.1.2
+VER=0.1.3
 curl -sSL "https://github.com/tatnet-ru/tatnet-cli/releases/download/v$VER/tatnet_${VER}_linux_amd64.tar.gz" | tar xz
 sudo install tatnet /usr/local/bin/
 ```
