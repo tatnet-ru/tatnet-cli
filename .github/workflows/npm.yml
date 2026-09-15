@@ -3,14 +3,24 @@ name: npm
 # Отдельно от релиза намеренно: пакеты собираются из ОПУБЛИКОВАННЫХ
 # артефактов, поэтому их можно пересобрать и выложить для любой прошлой
 # версии, не выпуская новый тег.
+#
+# ⚠ Триггера `release: published` здесь быть НЕ МОЖЕТ: релиз создаёт
+# goreleaser штатным GITHUB_TOKEN, а события от него по устройству Actions
+# не запускают другие workflow. Такой триггер молча не сработал бы ни разу.
+# Поэтому вызов — из release.yml через workflow_call, плюс ручной запуск.
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: "Тег релиза, например v0.1.2"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
         description: "Тег релиза, например v0.1.2"
         required: true
+        type: string
 
 permissions:
   contents: read
@@ -29,7 +39,7 @@ jobs:
       - name: Версия
         id: v
         run: |
-          tag="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          tag="${{ inputs.tag }}"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
           echo "версия: ${tag#v}"
 

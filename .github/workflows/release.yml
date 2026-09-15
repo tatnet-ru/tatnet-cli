@@ -25,3 +25,12 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Пакеты npm собираются из артефактов, которые только что выложил релиз,
+  # поэтому строго после него.
+  npm:
+    needs: release
+    uses: ./.github/workflows/npm.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit
