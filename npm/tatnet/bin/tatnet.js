@@ -13,13 +13,17 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// Платформенные пакеты — в скоупе @tatnet: незанятые имена вида
+// tatnet-cli-win32-arm64 реестр отвергает эвристикой антиспама, а имена
+// внутри собственной организации под неё не попадают. Главный пакет
+// остаётся неймспейсным (`npx tatnet`) — его имя коротко и проходит.
 const PACKAGES = {
-  "darwin-arm64": "tatnet-cli-darwin-arm64",
-  "darwin-x64": "tatnet-cli-darwin-x64",
-  "linux-arm64": "tatnet-cli-linux-arm64",
-  "linux-x64": "tatnet-cli-linux-x64",
-  "win32-arm64": "tatnet-cli-win32-arm64",
-  "win32-x64": "tatnet-cli-win32-x64",
+  "darwin-arm64": "@tatnet/cli-darwin-arm64",
+  "darwin-x64": "@tatnet/cli-darwin-x64",
+  "linux-arm64": "@tatnet/cli-linux-arm64",
+  "linux-x64": "@tatnet/cli-linux-x64",
+  "win32-arm64": "@tatnet/cli-win32-arm64",
+  "win32-x64": "@tatnet/cli-win32-x64",
 };
 
 const RELEASES = "https://github.com/tatnet-ru/tatnet-cli/releases";

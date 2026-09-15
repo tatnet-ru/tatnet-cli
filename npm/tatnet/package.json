@@ -2,7 +2,15 @@
   "name": "tatnet",
   "version": "0.0.0-dev",
   "description": "Консольный клиент публичного API TatNet",
-  "keywords": ["tatnet", "cli", "cloud", "postgres", "valkey", "dns", "s3"],
+  "keywords": [
+    "tatnet",
+    "cli",
+    "cloud",
+    "postgres",
+    "valkey",
+    "dns",
+    "s3"
+  ],
   "homepage": "https://github.com/tatnet-ru/tatnet-cli#readme",
   "bugs": "https://github.com/tatnet-ru/tatnet-cli/issues",
   "repository": {
@@ -12,16 +20,19 @@
   "bin": {
     "tatnet": "bin/tatnet.js"
   },
-  "files": ["bin/tatnet.js", "README.md"],
+  "files": [
+    "bin/tatnet.js",
+    "README.md"
+  ],
   "engines": {
     "node": ">=18"
   },
   "optionalDependencies": {
-    "tatnet-cli-darwin-arm64": "0.0.0-dev",
-    "tatnet-cli-darwin-x64": "0.0.0-dev",
-    "tatnet-cli-linux-arm64": "0.0.0-dev",
-    "tatnet-cli-linux-x64": "0.0.0-dev",
-    "tatnet-cli-win32-arm64": "0.0.0-dev",
-    "tatnet-cli-win32-x64": "0.0.0-dev"
+    "@tatnet/cli-darwin-arm64": "0.0.0-dev",
+    "@tatnet/cli-darwin-x64": "0.0.0-dev",
+    "@tatnet/cli-linux-arm64": "0.0.0-dev",
+    "@tatnet/cli-linux-x64": "0.0.0-dev",
+    "@tatnet/cli-win32-arm64": "0.0.0-dev",
+    "@tatnet/cli-win32-x64": "0.0.0-dev"
   }
 }

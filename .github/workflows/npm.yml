@@ -55,7 +55,7 @@ jobs:
           mkdir -p npm/pack
           cd npm/dist
           main=$(npm pack ./tatnet --silent --pack-destination ../pack)
-          plat=$(npm pack ./tatnet-cli-linux-x64 --silent --pack-destination ../pack)
+          plat=$(npm pack ./plat-linux-x64 --silent --pack-destination ../pack)
           mkdir -p ../pack/smoke && cd ../pack/smoke
           npm init -y > /dev/null
           npm install --no-audit --no-fund "../$plat" "../$main"
@@ -109,7 +109,7 @@ jobs:
           # версией, обратный порядок оставил бы в реестре нерабочий tatnet.
           # Косая черта в маске — только каталоги: иначе сюда попал бы
           # любой .tgz, оказавшийся рядом, и node не нашёл бы в нём манифест.
-          for p in npm/dist/tatnet-cli-*/; do
+          for p in npm/dist/plat-*/; do
             publish "${p%/}"
           done
           publish npm/dist/tatnet

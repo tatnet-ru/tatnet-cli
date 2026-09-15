@@ -59,8 +59,9 @@ gh release download "v$VERSION" --repo "$REPO" --pattern checksums.txt --dir "$W
 
 for spec in "${PLATFORMS[@]}"; do
   IFS=: read -r goos goarch nodeos nodearch ext <<<"$spec"
-  pkg="tatnet-cli-${nodeos}-${nodearch}"
-  dir="$DIST/$pkg"
+  pkg="@tatnet/cli-${nodeos}-${nodearch}"
+  # Каталог плоский: скоуп в пути создал бы лишний уровень вложенности.
+  dir="$DIST/plat-${nodeos}-${nodearch}"
   mkdir -p "$dir/bin"
 
   asset="$WORK/tatnet_${VERSION}_${goos}_${goarch}.${ext}"
@@ -118,7 +119,7 @@ if [[ "$PUBLISH" == "--publish" ]]; then
   # порядок оставил бы в реестре tatnet, который нечем удовлетворить.
   for spec in "${PLATFORMS[@]}"; do
     IFS=: read -r _ _ nodeos nodearch _ <<<"$spec"
-    ( cd "$DIST/tatnet-cli-${nodeos}-${nodearch}" && npm publish --access public )
+    ( cd "$DIST/plat-${nodeos}-${nodearch}" && npm publish --access public )
   done
   ( cd "$DIST/tatnet" && npm publish --access public )
   echo "опубликовано: tatnet@$VERSION"
