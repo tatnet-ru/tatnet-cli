@@ -1,0 +1,40 @@
+{
+  "name": "tatnet",
+  "version": "0.0.0-dev",
+  "description": "Консольный клиент облака TatNet (tatnet.ru)",
+  "keywords": [
+    "tatnet",
+    "cli",
+    "cloud",
+    "postgres",
+    "valkey",
+    "dns",
+    "s3"
+  ],
+  "homepage": "https://tatnet.ru",
+  "bugs": "https://github.com/tatnet-ru/tatnet-cli/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tatnet-ru/tatnet-cli.git"
+  },
+  "bin": {
+    "tatnet": "bin/tatnet.js"
+  },
+  "files": [
+    "bin/tatnet.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@tatnet/cli-darwin-arm64": "0.0.0-dev",
+    "@tatnet/cli-darwin-x64": "0.0.0-dev",
+    "@tatnet/cli-linux-arm64": "0.0.0-dev",
+    "@tatnet/cli-linux-x64": "0.0.0-dev",
+    "@tatnet/cli-win32-arm64": "0.0.0-dev",
+    "@tatnet/cli-win32-x64": "0.0.0-dev"
+  },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,67 @@
+# Сборка релиза: goreleaser release --clean по тегу vX.Y.Z.
+version: 2
+
+project_name: tatnet
+
+before:
+  hooks:
+    - go mod download
+    - go test ./...
+
+builds:
+  - id: tatnet
+    main: ./cmd/tatnet
+    binary: tatnet
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: tatnet
+    formats: [tar.gz]
+    # Windows ожидает zip: tar там есть с Windows 10, но привычка другая.
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "tatnet_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+nfpms:
+  - id: tatnet
+    package_name: tatnet
+    vendor: TatNet
+    homepage: https://tatnet.ru
+    maintainer: TatNet <support@tatnet.ru>
+    description: Консольный клиент публичного API TatNet
+    license: Apache-2.0
+    formats: [deb, rpm]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^Тесты:"
+      - "^Документация:"
+
+release:
+  draft: false
+  footer: |
+    Установка:
+
+        curl -sSL https://github.com/tatnet-ru/tatnet-cli/releases/download/{{ .Tag }}/tatnet_{{ .Version }}_linux_amd64.tar.gz | tar xz
+        sudo install tatnet /usr/local/bin/
+
+    Либо: `go install github.com/tatnet-ru/tatnet-cli/cmd/tatnet@{{ .Tag }}`
