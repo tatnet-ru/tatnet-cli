@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,8 @@ type deployAPI struct {
 	buildErrText string
 	domains      []any
 	appExists    bool
+	logCalls     int
+	logLines     []string
 }
 
 const (
@@ -89,6 +92,21 @@ func (f *deployAPI) handler() http.Handler {
 				"status": f.buildStatus, "error": f.buildErrText,
 			}}, 0, 20))
 
+		case strings.HasSuffix(p, "/logs") && r.Method == http.MethodGet:
+			// Первый запрос — живой поток, который оборвался на середине
+			// (сборка закончилась быстрее, чем доехал её вывод). Второй —
+			// полная история у завершённой сборки, как и отдаёт API.
+			f.logCalls++
+			w.Header().Set("Content-Type", "text/event-stream")
+			lines := f.logLines
+			if f.logCalls == 1 {
+				lines = lines[:1]
+			}
+			for _, l := range lines {
+				fmt.Fprintf(w, "data: %s\n\n", l)
+			}
+			fmt.Fprint(w, "event: done\ndata: {}\n\n")
+
 		case strings.HasSuffix(p, "/domains") && r.Method == http.MethodGet:
 			writeJSON(w, page(f.domains, 0, 100))
 
@@ -104,6 +122,7 @@ func newDeployAPI(t *testing.T) *deployAPI {
 	return &deployAPI{
 		t:           t,
 		buildStatus: "success",
+		logLines:    []string{"Starting build...", "Unpacking uploaded sources...", "Published 3 files"},
 		domains: []any{
 			map[string]any{"id": "d2", "app_id": testAppID, "domain": "своё.example", "status": "active", "is_default": false},
 			map[string]any{"id": "d1", "app_id": testAppID, "domain": "folder-app-abc.tatnet.app", "status": "active", "is_default": true},
@@ -282,5 +301,30 @@ func TestE2EDeploy_EmptyFolder(t *testing.T) {
 	}
 	if api.uploads != 0 {
 		t.Error("пустой архив всё-таки ушёл на сервер")
+	}
+}
+
+// Короткая сборка заканчивается раньше, чем доезжает её собственный вывод:
+// живой поток закрывается по терминальному статусу. Замер на проде 16.09:
+// клиент показал 3 строки из 16 и написал «Сборка прошла» — вывод выглядел
+// полным и не был им. Хвост обязан дочитываться, и без повторов.
+func TestE2EDeploy_LogTailIsReadAfterTheBuildEnds(t *testing.T) {
+	api := newDeployAPI(t)
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+	dir := projectDir(t)
+
+	_, errOut, err := run(t, srv, "deploy", dir, "-p", testProjectID, "--logs")
+	if err != nil {
+		t.Fatalf("deploy: %v\n%s", err, errOut)
+	}
+	for _, line := range api.logLines {
+		if strings.Count(errOut, line) != 1 {
+			t.Errorf("строка лога %q встречается %d раз, ожидался ровно один",
+				line, strings.Count(errOut, line))
+		}
+	}
+	if api.logCalls != 2 {
+		t.Errorf("обращений к логу %d, ожидалось 2 (живой поток и дочитывание хвоста)", api.logCalls)
 	}
 }

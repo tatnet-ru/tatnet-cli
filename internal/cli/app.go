@@ -329,7 +329,7 @@ func appBuildCommand(env *Env) *cobra.Command {
 				// архива. Без него «что сейчас в проде» осталось бы без
 				// ответа: две выкладки одной папки неотличимы, а разные —
 				// не видно, что разные.
-				output.Col("отпечаток", "source_archive_sha256"),
+				output.ShortCol("отпечаток", "source_archive_sha256", 12),
 				output.Col("сообщение", "commit_message"),
 				output.Col("длительность", "duration_ms"),
 				output.Col("создана", "created_at"),

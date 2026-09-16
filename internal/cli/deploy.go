@@ -313,8 +313,11 @@ func humanBytes(n int64) string {
 // awaitBuild ждёт окончания сборки, при --logs печатая её лог.
 func (e *Env) awaitBuild(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string, showLogs bool) error {
 	errOut := cmd.ErrOrStderr()
+	shown := 0
 	if showLogs {
-		if err := e.streamBuildLog(cmd, c, project, appID, buildID); err != nil {
+		n, err := e.streamBuildLog(cmd, c, project, appID, buildID, 0)
+		shown = n
+		if err != nil {
 			fmt.Fprintf(errOut, "предупреждение: лог сборки прервался: %v\n", err)
 		}
 	} else {
@@ -331,9 +334,11 @@ func (e *Env) awaitBuild(cmd *cobra.Command, c *tatnet.ClientWithResponses, proj
 		}
 		switch status {
 		case "success":
+			e.printMissedLog(cmd, c, project, appID, buildID, showLogs, shown)
 			fmt.Fprintln(errOut, "Сборка прошла")
 			return nil
 		case "error", "failed", "cancelled":
+			e.printMissedLog(cmd, c, project, appID, buildID, showLogs, shown)
 			if errText != "" {
 				return fmt.Errorf("сборка не прошла: %s", errText)
 			}
@@ -363,30 +368,52 @@ func (e *Env) buildStatus(ctx context.Context, c *tatnet.ClientWithResponses, pr
 	return "queued", "", nil
 }
 
-// streamBuildLog печатает лог сборки, пока он идёт.
-func (e *Env) streamBuildLog(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string) error {
+// printMissedLog дочитывает лог ПОСЛЕ окончания сборки.
+//
+// Живой поток закрывается, как только сборка стала терминальной, — а строки
+// в этот момент ещё едут: короткая сборка (2,3 с у статики) успевает
+// закончиться раньше, чем доедет её собственный вывод. Замер 16.09: клиент
+// показал 3 строки из 16 и написал «Сборка прошла». Повторный запрос у
+// завершённой сборки отдаёт ПОЛНУЮ историю, поэтому пропускаем столько
+// строк, сколько уже напечатали, и печатаем хвост.
+func (e *Env) printMissedLog(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string, showLogs bool, shown int) {
+	if !showLogs {
+		return
+	}
+	if _, err := e.streamBuildLog(cmd, c, project, appID, buildID, shown); err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "предупреждение: хвост лога дочитать не удалось: %v\n", err)
+	}
+}
+
+// streamBuildLog печатает лог сборки, пропуская первые skip строк.
+// Возвращает, сколько строк лога прошло через него всего (включая пропущенные).
+func (e *Env) streamBuildLog(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string, skip int) (int, error) {
 	resp, err := c.AppsStreamBuildLogs(cmd.Context(), project, appID, buildID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("лог недоступен: %s", resp.Status)
+		return 0, fmt.Errorf("лог недоступен: %s", resp.Status)
 	}
 
 	errOut := cmd.ErrOrStderr()
 	sc := bufio.NewScanner(resp.Body)
 	sc.Buffer(make([]byte, 64*1024), 1024*1024)
+	seen := 0
 	for sc.Scan() {
 		line := sc.Text()
 		switch {
 		case strings.HasPrefix(line, "data: "):
-			fmt.Fprintln(errOut, "  "+strings.TrimPrefix(line, "data: "))
+			seen++
+			if seen > skip {
+				fmt.Fprintln(errOut, "  "+strings.TrimPrefix(line, "data: "))
+			}
 		case line == "event: done":
-			return nil
+			return seen, nil
 		}
 	}
-	return sc.Err()
+	return seen, sc.Err()
 }
 
 // printAppURL печатает адрес приложения — и ТОЛЬКО его — в stdout.
