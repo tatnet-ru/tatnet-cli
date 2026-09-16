@@ -52,6 +52,12 @@ func NewRootCommand(version string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			// Группе реквизиты не нужны: она либо печатает справку, либо
+			// ругается на опечатку. Разбирать конфиг ради этого значит
+			// уронить `tatnet dns` на испорченном конфиге вместо подсказки.
+			if cmd.Annotations[groupAnnotation] == "1" {
+				return nil
+			}
 			return setup(cmd, env, &g)
 		},
 	}
@@ -79,7 +85,47 @@ func NewRootCommand(version string) *cobra.Command {
 		newSSHKeyCommand(env),
 		newAPICommand(env),
 	)
+	sealGroups(root)
 	return root
+}
+
+// groupAnnotation помечает команду-группу — узел дерева без собственного
+// действия.
+const groupAnnotation = "tatnet.group"
+
+// sealGroups делает неизвестную подкоманду ОШИБКОЙ.
+//
+// Cobra на группе без собственного действия печатает справку и выходит с
+// нулём: `tatnet dns list` (подкоманды `list` у `dns` нет) клал бы в файл
+// текст справки и рапортовал успех — в скрипте это неотличимо от рабочего
+// вызова. Проверка Args тут бесполезна, до неё не доходит: в execute()
+// ветка `!c.Runnable() → flag.ErrHelp` стоит РАНЬШЕ ValidateArgs, а
+// legacyArgs ругается только на корневой команде (cobra v1.10.1,
+// command.go:955 и args.go). Поэтому группе выдаётся собственное действие.
+func sealGroups(cmd *cobra.Command) {
+	for _, c := range cmd.Commands() {
+		sealGroups(c)
+	}
+	if !cmd.HasSubCommands() || cmd.Runnable() {
+		return
+	}
+	if cmd.Annotations == nil {
+		cmd.Annotations = map[string]string{}
+	}
+	cmd.Annotations[groupAnnotation] = "1"
+	cmd.DisableFlagsInUseLine = true
+	cmd.Args = cobra.ArbitraryArgs
+	cmd.RunE = func(c *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			// Голая группа по-прежнему печатает справку и выходит с нулём.
+			return c.Help()
+		}
+		msg := fmt.Sprintf("неизвестная подкоманда %q для %q", args[0], c.CommandPath())
+		if s := c.SuggestionsFor(args[0]); len(s) > 0 {
+			msg += "\nВозможно, имелось в виду: " + strings.Join(s, ", ")
+		}
+		return fmt.Errorf("%s\nСписок подкоманд: %s --help", msg, c.CommandPath())
+	}
 }
 
 // setup разрешает реквизиты: флаг → переменная окружения → профиль.

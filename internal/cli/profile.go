@@ -35,7 +35,7 @@ func newProfileCommand(env *Env) *cobra.Command {
 						"project": p.Project, "key": maskKey(p.APIKey),
 					})
 				}
-				return env.Printer.List(rows, []output.Column{
+				return env.Printer.ListLocal(rows, []output.Column{
 					output.Col("", "current"),
 					output.Col("профиль", "name"),
 					output.Col("ключ", "key"),

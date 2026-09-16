@@ -20,7 +20,7 @@ import (
 func call(resp any, err error) (any, error) {
 	status, body, err := unwrap(resp, err)
 	if err != nil {
-		return nil, err
+		return nil, explainTransport(err)
 	}
 	return decode(status, body, nil)
 }

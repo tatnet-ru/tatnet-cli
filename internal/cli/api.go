@@ -256,7 +256,7 @@ func (e *Env) rawRequest(cmd *cobra.Command, method, path string, body []byte, h
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, explainTransport(err)
 	}
 	defer resp.Body.Close()
 
