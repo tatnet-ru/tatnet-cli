@@ -49,10 +49,21 @@ type Column struct {
 	Title string
 	Path  string
 	Wide  bool
+	// Trunc > 0 — показывать первые Trunc символов и многоточие. Для
+	// отпечатков: 64 шестнадцатеричных знака в колонке нечитаемы, а
+	// различать выкладки хватает префикса — как с git-хешами. Урезание
+	// ВИДИМОЕ (многоточие), и только в таблице: -o json отдаёт значение
+	// целиком, поэтому разбор вывода от этого не страдает.
+	Trunc int
 }
 
 // Col — обычная колонка.
 func Col(title, path string) Column { return Column{Title: title, Path: path} }
+
+// ShortCol — колонка, показывающая начало длинного значения.
+func ShortCol(title, path string, n int) Column {
+	return Column{Title: title, Path: path, Trunc: n}
+}
 
 // WideCol — колонка, видимая только при -o wide.
 func WideCol(title, path string) Column { return Column{Title: title, Path: path, Wide: true} }
@@ -174,11 +185,25 @@ func (p Printer) table(items []any, cols []Column) error {
 	for _, it := range items {
 		cells := make([]string, len(visible))
 		for i, c := range visible {
-			cells[i] = Value(it, c.Path)
+			cells[i] = truncate(Value(it, c.Path), c.Trunc)
 		}
 		fmt.Fprintln(tw, strings.Join(cells, "\t"))
 	}
 	return tw.Flush()
+}
+
+// truncate режет значение ВИДИМО — с многоточием, чтобы урезанное нельзя
+// было принять за целое. Режется только таблица: -o json отдаёт значение как
+// есть, поэтому разбор вывода не страдает.
+func truncate(v string, n int) string {
+	if n <= 0 {
+		return v
+	}
+	r := []rune(v)
+	if len(r) <= n {
+		return v
+	}
+	return string(r[:n]) + "…"
 }
 
 func (p Printer) writeJSON(v any) error {
@@ -206,6 +231,25 @@ func Value(obj any, path string) string {
 		return "-"
 	}
 	return Stringify(v)
+}
+
+// Field достаёт значение как ОНО ЕСТЬ, без форматирования.
+//
+// Для логики — только это. Value отдаёт строку для человека и локализована:
+// булево там «да»/«нет», отсутствующее — «-». Сравнение такой строки с "true"
+// молча не совпадёт никогда, и ветка просто не сработает.
+func Field(obj any, path string) (any, bool) {
+	return lookup(obj, path)
+}
+
+// Bool — частый случай Field: признак, по которому ветвятся.
+func Bool(obj any, path string) bool {
+	v, ok := lookup(obj, path)
+	if !ok {
+		return false
+	}
+	b, _ := v.(bool)
+	return b
 }
 
 func lookup(obj any, path string) (any, bool) {
