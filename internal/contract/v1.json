@@ -5730,6 +5730,28 @@
             "title": "Id",
             "type": "string"
           },
+          "source_archive_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Archive Bytes"
+          },
+          "source_archive_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Archive Sha256"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -12412,6 +12434,72 @@
         ]
       }
     },
+    "/projects/{project_id}/apps/{app_id}/builds/{build_id}/logs": {
+      "get": {
+        "description": "Stream the log of one build, live while it runs.\n\nSame generator the dashboard uses — deliberately, not a second\nimplementation: it already knows the difference between a finished build\n(full history) and a running one (live tail), and two copies of that would\ndrift.\n\nThe stream ends with an explicit ``done`` event. Plain text would end with\nEOF, and EOF cannot tell \"the log is over\" from \"the connection dropped\" —\na client would report a truncated build as a finished one.",
+        "operationId": "apps_stream_build_logs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "build_id",
+            "required": true,
+            "schema": {
+              "title": "Build Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Server-sent events: one `data:` event per log line, terminated by an `event: done`."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Stream build logs",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
     "/projects/{project_id}/apps/{app_id}/deploy": {
       "post": {
         "operationId": "apps_deploy_app",
@@ -12473,6 +12561,75 @@
           }
         ],
         "summary": "Trigger a build & deploy",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/projects/{project_id}/apps/{app_id}/deployments": {
+      "post": {
+        "description": "Deploy an app from a local folder: the request body IS the source.\n\nFor apps with ``source_type=upload`` — no repository, no git provider. The\nbody is a gzip-compressed tar of the folder; it is stored as the source of\nexactly this build, so a later rebuild of that build still means the same\nsources.",
+        "operationId": "apps_create_deployment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/gzip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "gzip-compressed tar archive of the project folder",
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1AppDeployResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Deploy sources from a folder",
         "tags": [
           "apps"
         ]

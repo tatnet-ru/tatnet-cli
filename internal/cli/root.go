@@ -84,6 +84,7 @@ func NewRootCommand(version string) *cobra.Command {
 		newValkeyCommand(env),
 		newSSHKeyCommand(env),
 		newAPICommand(env),
+		newDeployCommand(env),
 	)
 	sealGroups(root)
 	return root

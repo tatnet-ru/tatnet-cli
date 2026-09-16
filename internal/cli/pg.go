@@ -291,7 +291,9 @@ func writeCA(cmd *cobra.Command, env *Env, v any, file, ref string) error {
 	}
 	pem := output.Value(v, "ca_pem")
 	if pem == "-" || strings.TrimSpace(pem) == "" {
-		if output.Value(v, "ready") == "нет" {
+		// По сырому значению: Value форматирует для человека, и сверка с
+		// «нет» разъедется от первой же правки формулировки.
+		if !output.Bool(v, "ready") {
 			return fmt.Errorf("сертификат кластера %s ещё не готов — регион его не выпустил", ref)
 		}
 		return fmt.Errorf("кластер %s не вернул сертификат", ref)
@@ -499,7 +501,7 @@ func pgParametersCommand(env *Env) *cobra.Command {
 }
 
 func restartHint(v any) string {
-	if output.Value(v, "pending_restart") == "да" {
+	if output.Bool(v, "pending_restart") {
 		return "\nЧасть параметров требует перезапуска: tatnet pg restart."
 	}
 	return ""

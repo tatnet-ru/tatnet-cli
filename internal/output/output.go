@@ -208,6 +208,25 @@ func Value(obj any, path string) string {
 	return Stringify(v)
 }
 
+// Field достаёт значение как ОНО ЕСТЬ, без форматирования.
+//
+// Для логики — только это. Value отдаёт строку для человека и локализована:
+// булево там «да»/«нет», отсутствующее — «-». Сравнение такой строки с "true"
+// молча не совпадёт никогда, и ветка просто не сработает.
+func Field(obj any, path string) (any, bool) {
+	return lookup(obj, path)
+}
+
+// Bool — частый случай Field: признак, по которому ветвятся.
+func Bool(obj any, path string) bool {
+	v, ok := lookup(obj, path)
+	if !ok {
+		return false
+	}
+	b, _ := v.(bool)
+	return b
+}
+
 func lookup(obj any, path string) (any, bool) {
 	cur := obj
 	for _, part := range strings.Split(path, ".") {
