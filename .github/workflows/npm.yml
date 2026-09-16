@@ -86,20 +86,28 @@ jobs:
           ./node_modules/.bin/tatnet api --list ssh-keys > /dev/null
           echo "вшитый контракт читается"
 
-      - name: Есть ли токен npm
-        id: token
+      # Чем пойдёт публикация — печатается, а не подразумевается. Основной
+      # путь теперь OIDC: доверенный издатель настроен на все семь пакетов и
+      # проверен замером (в реестре у 0.1.7 стоит trustedPublisher, у 0.1.6 —
+      # имя пользователя). Токен остался необязательным запасным путём.
+      #
+      # ⚠ Раньше здесь публикация ПРОПУСКАЛАСЬ без токена. С момента, как
+      # заработал OIDC, это стало ложью: удаление секрета тихо оставило бы
+      # релизы без пакета при зелёном прогоне.
+      - name: Способ аутентификации
+        id: auth
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NPM_TOKEN:-}" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Публикация в npm пропущена::Секрет NPM_TOKEN не задан. Пакеты собраны и проверены, но в реестр не отправлены. Добавьте токен: gh secret set NPM_TOKEN --repo tatnet-ru/tatnet-cli — и перезапустите этот workflow с нужным тегом."
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "токен задан — будет запасным путём, если OIDC не сработает"
           else
-            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "токена нет — публикация пойдёт только через доверенного издателя"
           fi
+          echo "ручной запуск (workflow_dispatch) под OIDC НЕ подходит:"
+          echo "  реестр проверяет вызывающий workflow, а связь заведена на release.yml"
 
       - name: Публикация
-        if: steps.token.outputs.present == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VERSION: ${{ steps.v.outputs.version }}
@@ -149,7 +157,6 @@ jobs:
       # сказал «успех» о пакетах, которых снаружи не было видно. Верить надо
       # тому, что увидит устанавливающий, а не тому, что напечатал publish.
       - name: Доступность снаружи
-        if: steps.token.outputs.present == 'true'
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: |
@@ -203,12 +210,17 @@ jobs:
               echo "реестре не появится. Повтор прогона безопасен — уже"
               echo "опубликованные версии пропускаются."
             } >> "$GITHUB_STEP_SUMMARY"
-          elif [ "${{ steps.token.outputs.present }}" = "true" ]; then
-            echo "### Опубликовано в npm: tatnet@${{ steps.v.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo 'npx tatnet --help' >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### В npm НЕ опубликовано" >> "$GITHUB_STEP_SUMMARY"
-            echo "Пакеты собраны и проверены запуском, но секрета \`NPM_TOKEN\` нет." >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "### Опубликовано в npm: tatnet@${{ steps.v.outputs.version }}"
+              echo
+              echo '```'
+              echo 'npx tatnet --help'
+              echo '```'
+              echo
+              echo "Чем именно опубликовано, видно в реестре — \`_npmUser\`"
+              echo "у версии: доверенный издатель отмечается как"
+              echo "\`GitHub Actions\` с полем \`trustedPublisher\`, публикация"
+              echo "токеном — именем владельца."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi

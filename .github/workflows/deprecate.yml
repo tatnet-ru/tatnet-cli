@@ -42,6 +42,15 @@ jobs:
           MSG: ${{ inputs.message }}
         run: |
           set -euo pipefail
+
+          # Падать закрыто и с объяснением. Доверенный издатель даёт права на
+          # ПУБЛИКАЦИЮ, а не на управление пакетом, поэтому OIDC здесь не
+          # поможет и без токена операция невозможна в принципе. Голый 403
+          # от npm об этом не скажет.
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error title=Нет токена npm::Пометка устаревшими требует токен: доверенный издатель (OIDC) разрешает публикацию, но не управление пакетом. Заведите временный granular access token с обходом 2FA на npmjs.com, положите его — gh secret set NPM_TOKEN --repo tatnet-ru/tatnet-cli — запустите этот прогон и УДАЛИТЕ секрет обратно. Постоянно держать его в репозитории незачем: релизы идут по OIDC."
+            exit 1
+          fi
           for p in tatnet @tatnet/cli-darwin-arm64 @tatnet/cli-darwin-x64 \
                    @tatnet/cli-linux-arm64 @tatnet/cli-linux-x64 \
                    @tatnet/cli-win32-arm64 @tatnet/cli-win32-x64; do
