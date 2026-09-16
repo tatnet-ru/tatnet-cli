@@ -32,6 +32,8 @@ type Env struct {
 	Debug   bool
 
 	client *tatnet.ClientWithResponses
+	// Отдельный клиент для потоков: у него нет общего таймаута запроса.
+	streamClient *tatnet.ClientWithResponses
 }
 
 // ErrNoAPIKey — ключа нет нигде: ни во флаге, ни в окружении, ни в профиле.
@@ -51,10 +53,39 @@ func (e *Env) Client() (*tatnet.ClientWithResponses, error) {
 	if e.client != nil {
 		return e.client, nil
 	}
+	c, err := e.newClient(e.Timeout)
+	if err != nil {
+		return nil, err
+	}
+	e.client = c
+	return c, nil
+}
+
+// StreamClient — клиент для ДОЛГИХ ответов: лога сборки и прочего, что
+// читается потоком.
+//
+// Общий таймаут запроса тут вреден: он считается на весь ответ целиком, а
+// поток живёт столько, сколько идёт сборка. С `--timeout 1m` лог обрывался
+// на минуте словами «context deadline exceeded» — то есть здоровый поток
+// объявлялся сбоем. Ограничение по времени у потока одно и правильное:
+// отмена контекста (Ctrl+C) и конец самой сборки.
+func (e *Env) StreamClient() (*tatnet.ClientWithResponses, error) {
+	if e.streamClient != nil {
+		return e.streamClient, nil
+	}
+	c, err := e.newClient(0)
+	if err != nil {
+		return nil, err
+	}
+	e.streamClient = c
+	return c, nil
+}
+
+func (e *Env) newClient(timeout time.Duration) (*tatnet.ClientWithResponses, error) {
 	if strings.TrimSpace(e.APIKey) == "" {
 		return nil, ErrNoAPIKey{Profile: e.ProfileName}
 	}
-	hc := &http.Client{Timeout: e.Timeout}
+	hc := &http.Client{Timeout: timeout}
 	if e.Debug {
 		hc.Transport = debugTransport{next: http.DefaultTransport}
 	}
@@ -65,14 +96,12 @@ func (e *Env) Client() (*tatnet.ClientWithResponses, error) {
 		if err != nil {
 			return nil, err
 		}
-		e.client = c
 		return c, nil
 	}
 	c, err := tatnet.New(e.APIKey, opts...)
 	if err != nil {
 		return nil, err
 	}
-	e.client = c
 	return c, nil
 }
 

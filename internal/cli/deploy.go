@@ -388,7 +388,13 @@ func (e *Env) printMissedLog(cmd *cobra.Command, c *tatnet.ClientWithResponses, 
 // streamBuildLog печатает лог сборки, пропуская первые skip строк.
 // Возвращает, сколько строк лога прошло через него всего (включая пропущенные).
 func (e *Env) streamBuildLog(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string, skip int) (int, error) {
-	resp, err := c.AppsStreamBuildLogs(cmd.Context(), project, appID, buildID)
+	// Клиент без общего таймаута: поток лога живёт столько, сколько идёт
+	// сборка, и `--timeout` обрывал бы здоровый поток на минуте.
+	streamer, err := e.StreamClient()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := streamer.AppsStreamBuildLogs(cmd.Context(), project, appID, buildID)
 	if err != nil {
 		return 0, err
 	}
