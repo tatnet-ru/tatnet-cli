@@ -84,7 +84,7 @@ func newSSHKeyCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			id, err := resolveRef(cmd.Context(), "SSH-ключ", args[0], env.listSSHKeys, "name")
+			id, err := resolveRef(cmd.Context(), kindSSHKey, args[0], env.listSSHKeys, "name")
 			if err != nil {
 				return err
 			}

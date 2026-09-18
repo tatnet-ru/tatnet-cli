@@ -57,7 +57,7 @@ func (e *Env) listVMs(ctx context.Context, project string, limit int) ([]any, er
 
 // resolveVM принимает id, имя или hostname.
 func (e *Env) resolveVM(ctx context.Context, project, ref string) (string, error) {
-	return resolveRef(ctx, "ВМ", ref, func(ctx context.Context) ([]any, error) {
+	return resolveRef(ctx, kindVM, ref, func(ctx context.Context) ([]any, error) {
 		return e.listVMs(ctx, project, 0)
 	}, "name", "hostname")
 }

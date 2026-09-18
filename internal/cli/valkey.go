@@ -65,7 +65,7 @@ func (e *Env) valkeyTarget(ctx context.Context, ref string) (*tatnet.ClientWithR
 	if err != nil {
 		return nil, "", "", err
 	}
-	id, err := resolveRef(ctx, "кластер Valkey", ref, func(ctx context.Context) ([]any, error) {
+	id, err := resolveRef(ctx, kindValkey, ref, func(ctx context.Context) ([]any, error) {
 		return e.listValkeyClusters(ctx, project)
 	}, "name")
 	if err != nil {

@@ -176,7 +176,7 @@ type deployAppOpts struct {
 // deployApp находит приложение или создаёт новое.
 func (e *Env) deployApp(ctx context.Context, c *tatnet.ClientWithResponses, project string, saved *link, o deployAppOpts) (string, bool, error) {
 	if o.ref != "" {
-		id, err := resolveRef(ctx, "приложение", o.ref, func(ctx context.Context) ([]any, error) {
+		id, err := resolveRef(ctx, kindApp, o.ref, func(ctx context.Context) ([]any, error) {
 			return e.listApps(ctx, project, 0)
 		}, "name")
 		return id, false, err
