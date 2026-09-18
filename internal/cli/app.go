@@ -101,7 +101,7 @@ func (e *Env) appTarget(ctx context.Context, ref string) (*tatnet.ClientWithResp
 	if err != nil {
 		return nil, "", "", fmt.Errorf("не удалось найти приложение %q: %w", ref, err)
 	}
-	id, err := resolveRef(ctx, "приложение", ref, func(context.Context) ([]any, error) { return all, nil }, "name")
+	id, err := resolveRef(ctx, kindApp, ref, func(context.Context) ([]any, error) { return all, nil }, "name")
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -458,7 +458,7 @@ func appEnvCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			varID, err := resolveRef(cmd.Context(), "переменная", args[1], func(ctx context.Context) ([]any, error) {
+			varID, err := resolveRef(cmd.Context(), kindEnvVar, args[1], func(ctx context.Context) ([]any, error) {
 				return listVars(ctx, c, project, id)
 			}, "name")
 			if err != nil {
@@ -555,7 +555,7 @@ func appDomainCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			domainID, err := resolveRef(cmd.Context(), "домен", args[1], func(ctx context.Context) ([]any, error) {
+			domainID, err := resolveRef(cmd.Context(), kindDomain, args[1], func(ctx context.Context) ([]any, error) {
 				return listDomains(ctx, c, project, id)
 			}, "domain")
 			if err != nil {

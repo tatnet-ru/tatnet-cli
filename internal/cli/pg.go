@@ -74,7 +74,7 @@ func (e *Env) pgTarget(ctx context.Context, ref string) (*tatnet.ClientWithRespo
 	if err != nil {
 		return nil, "", "", err
 	}
-	id, err := resolveRef(ctx, "кластер PostgreSQL", ref, func(ctx context.Context) ([]any, error) {
+	id, err := resolveRef(ctx, kindPg, ref, func(ctx context.Context) ([]any, error) {
 		return e.listPGClusters(ctx, project)
 	}, "name")
 	if err != nil {

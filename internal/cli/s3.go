@@ -115,7 +115,7 @@ func (e *Env) bucketTarget(ctx context.Context, ref string) (*tatnet.ClientWithR
 	if err != nil {
 		return nil, "", err
 	}
-	id, err := resolveRef(ctx, "бакет", ref, e.listBuckets, "name")
+	id, err := resolveRef(ctx, kindBucket, ref, e.listBuckets, "name")
 	if err != nil {
 		return nil, "", err
 	}
@@ -427,7 +427,7 @@ func s3KeyCommand(env *Env) *cobra.Command {
 			if len(buckets) > 0 {
 				ids := make([]string, 0, len(buckets))
 				for _, b := range buckets {
-					id, err := resolveRef(cmd.Context(), "бакет", b, env.listBuckets, "name")
+					id, err := resolveRef(cmd.Context(), kindBucket, b, env.listBuckets, "name")
 					if err != nil {
 						return err
 					}
@@ -458,7 +458,7 @@ func s3KeyCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			id, err := resolveRef(cmd.Context(), "ключ доступа", args[0], listKeys, "name", "access_key_id")
+			id, err := resolveRef(cmd.Context(), kindS3Key, args[0], listKeys, "name", "access_key_id")
 			if err != nil {
 				return err
 			}
@@ -466,7 +466,7 @@ func s3KeyCommand(env *Env) *cobra.Command {
 			if len(ubuckets) > 0 {
 				ids := make([]string, 0, len(ubuckets))
 				for _, b := range ubuckets {
-					bid, err := resolveRef(cmd.Context(), "бакет", b, env.listBuckets, "name")
+					bid, err := resolveRef(cmd.Context(), kindBucket, b, env.listBuckets, "name")
 					if err != nil {
 						return err
 					}
@@ -495,7 +495,7 @@ func s3KeyCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			id, err := resolveRef(cmd.Context(), "ключ доступа", args[0], listKeys, "name", "access_key_id")
+			id, err := resolveRef(cmd.Context(), kindS3Key, args[0], listKeys, "name", "access_key_id")
 			if err != nil {
 				return err
 			}

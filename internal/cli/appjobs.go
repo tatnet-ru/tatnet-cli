@@ -194,7 +194,7 @@ func appRunCommand(env *Env) *cobra.Command {
 			}
 			var jobID *string
 			if jobRef != "" {
-				resolved, err := resolveRef(cmd.Context(), "задача", jobRef, func(ctx context.Context) ([]any, error) {
+				resolved, err := resolveRef(cmd.Context(), kindJob, jobRef, func(ctx context.Context) ([]any, error) {
 					return env.listJobs(ctx, c, project, id)
 				}, "name")
 				if err != nil {
@@ -257,7 +257,7 @@ func (e *Env) jobTarget(ctx context.Context, appRef, jobRef string) (*tatnet.Cli
 	if err != nil {
 		return nil, "", "", "", err
 	}
-	jobID, err := resolveRef(ctx, "задача", jobRef, func(ctx context.Context) ([]any, error) {
+	jobID, err := resolveRef(ctx, kindJob, jobRef, func(ctx context.Context) ([]any, error) {
 		return e.listJobs(ctx, c, project, appID)
 	}, "name")
 	if err != nil {

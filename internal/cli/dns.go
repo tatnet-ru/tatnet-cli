@@ -46,7 +46,7 @@ func (e *Env) listZones(ctx context.Context) ([]any, error) {
 }
 
 func (e *Env) resolveZone(ctx context.Context, ref string) (string, error) {
-	return resolveRef(ctx, "зона", ref, e.listZones, "name")
+	return resolveRef(ctx, kindZone, ref, e.listZones, "name")
 }
 
 func dnsZoneCommand(env *Env) *cobra.Command {

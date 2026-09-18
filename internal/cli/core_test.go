@@ -117,7 +117,7 @@ func TestResolveRefRejectsAmbiguousName(t *testing.T) {
 			map[string]any{"id": "22222222-2222-2222-2222-222222222222", "name": "web"},
 		}, nil
 	}
-	_, err := resolveRef(context.Background(), "ВМ", "web", list, "name")
+	_, err := resolveRef(context.Background(), kindVM, "web", list, "name")
 	if err == nil || !strings.Contains(err.Error(), "несколько") {
 		t.Fatalf("неоднозначное имя принято: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestResolveRefPassesThroughID(t *testing.T) {
 	id := "33333333-3333-3333-3333-333333333333"
 	called := false
 	list := func(context.Context) ([]any, error) { called = true; return nil, nil }
-	got, err := resolveRef(context.Background(), "ВМ", id, list, "name")
+	got, err := resolveRef(context.Background(), kindVM, id, list, "name")
 	if err != nil || got != id {
 		t.Fatalf("идентификатор не пропущен как есть: %q %v", got, err)
 	}
@@ -140,7 +140,7 @@ func TestResolveRefUnknownNameListsCandidates(t *testing.T) {
 	list := func(context.Context) ([]any, error) {
 		return []any{map[string]any{"id": "44444444-4444-4444-4444-444444444444", "name": "api"}}, nil
 	}
-	_, err := resolveRef(context.Background(), "ВМ", "нет-такой", list, "name")
+	_, err := resolveRef(context.Background(), kindVM, "нет-такой", list, "name")
 	if err == nil || !strings.Contains(err.Error(), "api") {
 		t.Fatalf("отказ не подсказал, что есть: %v", err)
 	}
@@ -159,5 +159,39 @@ func TestParseInterface(t *testing.T) {
 	}
 	if _, err := parseInterface("type=vpc,floating_ip=да"); err == nil {
 		t.Error("нелогическое значение флага принято")
+	}
+}
+
+// Сообщения резолвера согласованы в роде и числе с видом ресурса: «приложение
+// не найдено», «ВМ не найдена», «несколько приложений». Одна строка на все
+// виды здесь была неграмотной для половины из них.
+func TestResolveRefMessagesAgreeWithKind(t *testing.T) {
+	cases := []struct {
+		kind      refKind
+		notFound  string
+		ambiguous string
+	}{
+		{kindApp, `приложение "x" не найдено`, "несколько приложений"},
+		{kindVM, `ВМ "x" не найдена`, "несколько ВМ"},
+		{kindProject, `проект "x" не найден`, "несколько проектов"},
+		{kindEnvVar, `переменная "x" не найдена`, "несколько переменных"},
+		{kindJob, `задача "x" не найдена`, "несколько задач"},
+	}
+	for _, c := range cases {
+		empty := func(context.Context) ([]any, error) { return nil, nil }
+		_, err := resolveRef(context.Background(), c.kind, "x", empty, "name")
+		if err == nil || !strings.Contains(err.Error(), c.notFound) {
+			t.Errorf("%s: ждали %q, получили %v", c.kind.one, c.notFound, err)
+		}
+		dup := func(context.Context) ([]any, error) {
+			return []any{
+				map[string]any{"id": "11111111-1111-1111-1111-111111111111", "name": "x"},
+				map[string]any{"id": "22222222-2222-2222-2222-222222222222", "name": "x"},
+			}, nil
+		}
+		_, err = resolveRef(context.Background(), c.kind, "x", dup, "name")
+		if err == nil || !strings.Contains(err.Error(), c.ambiguous) {
+			t.Errorf("%s: ждали %q, получили %v", c.kind.one, c.ambiguous, err)
+		}
 	}
 }
