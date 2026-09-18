@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
@@ -17,6 +19,7 @@ var appColumns = []output.Column{
 	output.Col("реплик", "replica_count"),
 	output.Col("репозиторий", "repo_full_name"),
 	output.Col("ветка", "branch"),
+	output.WideCol("проект", "project_id"),
 	output.WideCol("id", "id"),
 	output.WideCol("автодеплой", "auto_deploy"),
 	output.WideCol("образ", "docker_image"),
@@ -41,46 +44,84 @@ func newAppCommand(env *Env) *cobra.Command {
 	return cmd
 }
 
+// listApps — приложения аккаунта ключа через плоский GET /apps. Пустой
+// project — весь аккаунт; иначе фильтр ?project_id=.
+//
+// Раньше список шёл через /projects/{id}/apps, и без проекта команды про
+// приложение были бессильны: ключу, которому не дали GET /projects, был
+// недоступен сам адрес ресурса, а не ресурс (api#1060). Плоский путь снимает
+// это: приложение находится по имени, проект узнаётся из него.
 func (e *Env) listApps(ctx context.Context, project string, limit int) ([]any, error) {
 	c, err := e.Client()
 	if err != nil {
 		return nil, err
 	}
+	var pid *string
+	if project != "" {
+		pid = &project
+	}
 	return paginate(ctx, func(ctx context.Context, offset, size int) (any, error) {
-		return call(c.AppsListAppsWithResponse(ctx, project, &tatnet.AppsListAppsParams{
-			Limit: &size, Offset: &offset,
+		return call(c.AppsListAppsByAccountWithResponse(ctx, &tatnet.AppsListAppsByAccountParams{
+			ProjectId: pid, Limit: &size, Offset: &offset,
 		}))
 	}, limit, 0)
 }
 
-// appTarget — общая преамбула команд про одно приложение.
+// optionalProject — проект, если задан (флагом, переменной, профилем), иначе
+// пустая строка. Для команд про одно приложение проект стал необязательным:
+// он сужает поиск по имени, но не нужен, чтобы приложение найти.
+func (e *Env) optionalProject(ctx context.Context) (string, error) {
+	if strings.TrimSpace(e.Project) == "" {
+		return "", nil
+	}
+	return e.ResolveProject(ctx, e.Project)
+}
+
+// appTarget — общая преамбула команд про одно приложение: клиент, проект и
+// id. Проект берётся из самого приложения, а не требуется заранее.
 func (e *Env) appTarget(ctx context.Context, ref string) (*tatnet.ClientWithResponses, string, string, error) {
 	c, err := e.Client()
 	if err != nil {
 		return nil, "", "", err
 	}
-	project, err := e.RequireProject(ctx)
+	project, err := e.optionalProject(ctx)
 	if err != nil {
 		return nil, "", "", err
 	}
-	id, err := resolveRef(ctx, "приложение", ref, func(ctx context.Context) ([]any, error) {
-		return e.listApps(ctx, project, 0)
-	}, "name")
+	ref = strings.TrimSpace(ref)
+	if IsID(ref) {
+		// По id приложение достаётся напрямую, без списка и без проекта.
+		app, err := call(c.AppsGetAppByIdWithResponse(ctx, ref))
+		if err != nil {
+			return nil, "", "", err
+		}
+		return c, output.Value(app, "project_id"), ref, nil
+	}
+	all, err := e.listApps(ctx, project, 0)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("не удалось найти приложение %q: %w", ref, err)
+	}
+	id, err := resolveRef(ctx, "приложение", ref, func(context.Context) ([]any, error) { return all, nil }, "name")
 	if err != nil {
 		return nil, "", "", err
 	}
-	return c, project, id, nil
+	for _, it := range all {
+		if output.Value(it, "id") == id {
+			return c, output.Value(it, "project_id"), id, nil
+		}
+	}
+	return nil, "", "", fmt.Errorf("приложение %q найдено, но без проекта в ответе", ref)
 }
 
 func appListCommand(env *Env) *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:         "list",
-		Short:       "Приложения проекта",
-		Annotations: ops("apps_list_apps"),
+		Short:       "Приложения аккаунта (или проекта, если он задан)",
+		Annotations: ops("apps_list_apps_by_account"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := env.RequireProject(cmd.Context())
+			project, err := env.optionalProject(cmd.Context())
 			if err != nil {
 				return err
 			}

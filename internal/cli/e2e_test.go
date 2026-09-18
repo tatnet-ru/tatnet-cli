@@ -39,6 +39,31 @@ func (f *fakeAPI) handler() http.Handler {
 				map[string]any{"id": "11111111-1111-1111-1111-111111111111", "name": "прод"},
 				map[string]any{"id": "22222222-2222-2222-2222-222222222222", "name": "тест"},
 			}, 0, 100))
+		// Плоские пути приложений (api#1060): список по аккаунту с фильтром
+		// проекта и приложение по id — проект в адресе не нужен.
+		case r.URL.Path == "/apps" && r.Method == http.MethodGet:
+			apps := []any{
+				map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "name": "web",
+					"project_id": "11111111-1111-1111-1111-111111111111", "status": "active", "app_type": "frontend"},
+				map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "name": "api",
+					"project_id": "22222222-2222-2222-2222-222222222222", "status": "active", "app_type": "backend"},
+			}
+			if pid := r.URL.Query().Get("project_id"); pid != "" {
+				var only []any
+				for _, a := range apps {
+					if a.(map[string]any)["project_id"] == pid {
+						only = append(only, a)
+					}
+				}
+				apps = only
+			}
+			writeJSON(w, page(apps, 0, 100))
+		case r.URL.Path == "/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" && r.Method == http.MethodGet:
+			writeJSON(w, map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "name": "web",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "active"})
+		case r.URL.Path == "/projects/11111111-1111-1111-1111-111111111111/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" && r.Method == http.MethodGet:
+			writeJSON(w, map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "name": "web",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "active", "primary_domain": "web.tatnet.app"})
 		case strings.HasSuffix(r.URL.Path, "/vms") && r.Method == http.MethodGet:
 			offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -290,5 +315,75 @@ func TestE2EMissingProjectIsExplained(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--project") {
 		t.Fatalf("отказ не назвал недостающее: %v", err)
+	}
+}
+
+// Команды про приложение больше не требуют проекта: приложение находится по
+// имени через плоский /apps, проект узнаётся из него (api#1060).
+func TestE2EAppGetWithoutProject(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	out, _, err := run(t, srv, "app", "get", "web")
+	if err != nil {
+		t.Fatalf("app get без проекта: %v", err)
+	}
+	if !strings.Contains(out, "web") {
+		t.Errorf("в выводе нет найденного приложения:\n%s", out)
+	}
+	joined := strings.Join(api.requests, "\n")
+	if !strings.Contains(joined, "GET /apps?") {
+		t.Errorf("приложение должно искаться через плоский /apps, запросы:\n%s", joined)
+	}
+	if strings.Contains(joined, "GET /projects?") {
+		t.Errorf("без проекта список проектов не нужен — а он запрошен:\n%s", joined)
+	}
+	if !strings.Contains(joined, "GET /projects/11111111-1111-1111-1111-111111111111/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1") {
+		t.Errorf("проект должен быть взят из найденного приложения:\n%s", joined)
+	}
+}
+
+func TestE2EAppGetByIdWithoutProject(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	if _, _, err := run(t, srv, "app", "get", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"); err != nil {
+		t.Fatalf("app get по id без проекта: %v", err)
+	}
+	joined := strings.Join(api.requests, "\n")
+	if !strings.Contains(joined, "GET /apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1?") {
+		t.Errorf("по id приложение берётся напрямую, без списка:\n%s", joined)
+	}
+	if strings.Contains(joined, "GET /apps?") {
+		t.Errorf("по id список не нужен, а он запрошен:\n%s", joined)
+	}
+}
+
+func TestE2EAppListAccountWideAndByProject(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	out, _, err := run(t, srv, "app", "list")
+	if err != nil {
+		t.Fatalf("app list без проекта: %v", err)
+	}
+	if !strings.Contains(out, "web") || !strings.Contains(out, "api") {
+		t.Errorf("без проекта ждали оба приложения аккаунта:\n%s", out)
+	}
+
+	api.requests = nil
+	out, _, err = run(t, srv, "app", "list", "-p", "прод")
+	if err != nil {
+		t.Fatalf("app list с проектом: %v", err)
+	}
+	if !strings.Contains(out, "web") || strings.Contains(out, "\napi") {
+		t.Errorf("с проектом ждали только его приложения:\n%s", out)
+	}
+	joined := strings.Join(api.requests, "\n")
+	if !strings.Contains(joined, "project_id=11111111-1111-1111-1111-111111111111") {
+		t.Errorf("проект должен уйти фильтром в плоский /apps:\n%s", joined)
 	}
 }
