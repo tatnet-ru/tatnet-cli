@@ -81,8 +81,13 @@ go install github.com/tatnet-ru/tatnet-cli/cmd/tatnet@latest
 tatnet auth login                  # спросит ключ, проверит его и сохранит
 tatnet auth status                 # чей ключ и что он может
 tatnet project list
-tatnet profile set-project прод    # проект по умолчанию
+tatnet profile set-project прод    # проект по умолчанию — нужен ВМ, базам, созданию
 ```
+
+Командам про приложение проект не нужен: `tatnet app get магазин` найдёт
+приложение по имени во всём аккаунте и сам узнает его проект. Заданный
+проект лишь сужает поиск. Исключения — `app create` и `deploy`: там
+проект по существу, приложение создаётся в нём.
 
 Ключ проверяется до записи в конфиг: сохранённый нерабочий ключ выглядел бы
 как настроенный CLI и падал бы на первой же команде.
@@ -95,6 +100,8 @@ tatnet vm get web-1                       # по имени или hostname, н�
 tatnet vm stop web-1
 tatnet vm backup create web-1 --name до-обновления
 
+tatnet app list                           # все приложения аккаунта, без -p
+tatnet app get магазин                    # проект не нужен — узнаётся из приложения
 tatnet app deploy магазин
 tatnet app env set магазин DATABASE_URL 'postgres://…' --secret
 tatnet app job run магазин миграции
