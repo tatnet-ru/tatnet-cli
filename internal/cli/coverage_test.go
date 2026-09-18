@@ -59,12 +59,27 @@ func TestCoveredTagsAreCoveredCompletely(t *testing.T) {
 	}
 	bound := boundOps(t)
 
+	// Двойники: у операции про приложение есть две формы адреса — через
+	// проект (/projects/{project_id}/apps/…) и плоская (/apps/…), с одним и
+	// тем же смыслом и одной политикой (api#1060). CLI нужна ровно одна из
+	// них, и держать вторую «выведенной» ради гейта значило бы плодить
+	// мёртвые команды. Поэтому операция считается покрытой, если выведен её
+	// двойник. НОВАЯ возможность двойника не имеет и по-прежнему валит тест.
+	byKey := map[string]contract.Operation{}
+	for _, op := range ops {
+		byKey[op.Method+" "+op.Path] = op
+	}
+	coveredViaTwin := func(op contract.Operation) bool {
+		twin, ok := byKey[op.Method+" "+twinPath(op.Path)]
+		return ok && len(bound[twin.ID]) > 0
+	}
+
 	var missing []string
 	for _, op := range ops {
 		if _, deferred := deferredTags[op.Tag]; deferred {
 			continue
 		}
-		if len(bound[op.ID]) == 0 {
+		if len(bound[op.ID]) == 0 && !coveredViaTwin(op) {
 			missing = append(missing, op.Tag+" → "+op.ID+" ("+op.Method+" "+op.Path+")")
 		}
 	}
@@ -150,4 +165,33 @@ func TestCoverageSummary(t *testing.T) {
 	}
 	t.Logf("операций в контракте: %d, выведено командами: %d, отложено разделов: %d",
 		len(ops), covered, len(deferredTags))
+}
+
+// twinPath — адрес-двойник: скоупный путь приложения ↔ плоский. Для путей
+// без двойника возвращает пустую строку, которая ни с чем не совпадёт.
+func twinPath(p string) string {
+	const scoped = "/projects/{project_id}/apps"
+	switch {
+	case strings.HasPrefix(p, scoped):
+		return "/apps" + strings.TrimPrefix(p, scoped)
+	case p == "/apps" || strings.HasPrefix(p, "/apps/"):
+		return scoped + strings.TrimPrefix(p, "/apps")
+	}
+	return ""
+}
+
+func TestTwinPath(t *testing.T) {
+	cases := map[string]string{
+		"/projects/{project_id}/apps":              "/apps",
+		"/projects/{project_id}/apps/{app_id}/env": "/apps/{app_id}/env",
+		"/apps/{app_id}/jobs/{job_id}/run":         "/projects/{project_id}/apps/{app_id}/jobs/{job_id}/run",
+		"/apps":                                    "/projects/{project_id}/apps",
+		"/projects/{project_id}/vms/{vm_id}":       "",
+		"/domains":                                 "",
+	}
+	for in, want := range cases {
+		if got := twinPath(in); got != want {
+			t.Errorf("twinPath(%q) = %q, ждали %q", in, got, want)
+		}
+	}
 }
