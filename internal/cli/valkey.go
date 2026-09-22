@@ -20,6 +20,7 @@ var valkeyColumns = []output.Column{
 	output.Col("хост", "endpoint_host"),
 	output.Col("порт", "endpoint_port"),
 	output.Col("память", "maxmemory_mb"),
+	output.WideCol("проект", "project_id"),
 	output.WideCol("id", "id"),
 	output.WideCol("вытеснение", "eviction_policy"),
 	output.WideCol("persistence", "persistence"),
@@ -28,13 +29,15 @@ var valkeyColumns = []output.Column{
 }
 
 func newValkeyCommand(env *Env) *cobra.Command {
-	cmd := &cobra.Command{Use: "valkey", Short: "Управляемый Valkey (Redis-совместимый кэш)"}
+	cmd := &cobra.Command{Use: "valkey", Short: "Управляемый Valkey (Redis-совместимый кэш) (без -p — по всему аккаунту)"}
 	cmd.AddCommand(
 		valkeyListCommand(env),
 		valkeyGetCommand(env),
 		valkeyCreateCommand(env),
 		valkeyDeleteCommand(env),
 		valkeyCaCommand(env),
+		valkeyPlanCommand(env),
+		valkeyTopologyCommand(env),
 		valkeyParamsCommand(env),
 		valkeyAllowlistCommand(env),
 		valkeyResetPasswordCommand(env),
@@ -49,9 +52,14 @@ func (e *Env) listValkeyClusters(ctx context.Context, project string) ([]any, er
 	if err != nil {
 		return nil, err
 	}
+	// Плоский список по аккаунту (api#1060); проект — необязательный фильтр.
+	var pid *string
+	if project != "" {
+		pid = &project
+	}
 	return paginate(ctx, func(ctx context.Context, offset, size int) (any, error) {
-		return call(c.ValkeyListClustersWithResponse(ctx, project, &tatnet.ValkeyListClustersParams{
-			Limit: &size, Offset: &offset,
+		return call(c.ValkeyListClustersByAccountWithResponse(ctx, &tatnet.ValkeyListClustersByAccountParams{
+			ProjectId: pid, Limit: &size, Offset: &offset,
 		}))
 	}, 0, 0)
 }
@@ -61,13 +69,12 @@ func (e *Env) valkeyTarget(ctx context.Context, ref string) (*tatnet.ClientWithR
 	if err != nil {
 		return nil, "", "", err
 	}
-	project, err := e.RequireProject(ctx)
-	if err != nil {
-		return nil, "", "", err
-	}
-	id, err := resolveRef(ctx, kindValkey, ref, func(ctx context.Context) ([]any, error) {
-		return e.listValkeyClusters(ctx, project)
-	}, "name")
+	project, id, err := e.flatTarget(ctx, kindValkey, ref,
+		e.listValkeyClusters,
+		func(ctx context.Context, id string) (any, error) {
+			return call(c.ValkeyGetClusterByIdWithResponse(ctx, id))
+		},
+		"name")
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -78,10 +85,10 @@ func valkeyListCommand(env *Env) *cobra.Command {
 	return &cobra.Command{
 		Use:         "list",
 		Short:       "Кластеры проекта",
-		Annotations: ops("valkey_list_clusters"),
+		Annotations: ops("valkey_list_clusters_by_account"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := env.RequireProject(cmd.Context())
+			project, err := env.optionalProject(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -245,6 +252,58 @@ func valkeyCaCommand(env *Env) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&file, "out", "", "записать PEM в файл")
 	return cmd
+}
+
+// valkeyPlanCommand и valkeyTopologyCommand — зеркала pg plan/topology.
+// Операции появились в api раньше, чем в CLI, и гейт покрытия держал их
+// невыведенными; устроены так же, как у Postgres, чтобы у двух managed-баз
+// был один словарь команд.
+func valkeyPlanCommand(env *Env) *cobra.Command {
+	return &cobra.Command{
+		Use:   "plan <кластер> <тариф-id>",
+		Short: "Сменить тариф",
+		Long: "Тариф меняется только вверх: память, vCPU и диск должны быть не\n" +
+			"меньше текущих. Узлы ресайзятся по одному с перезагрузкой; пределы\n" +
+			"maxmemory и maxclients поднимаются, когда все узлы на новых ресурсах.",
+		Annotations: ops("valkey_change_plan"),
+		Args:        cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, project, id, err := env.valkeyTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			v, err := call(c.ValkeyChangePlanWithResponse(cmd.Context(), project, id,
+				tatnet.ChangeValkeyPlanRequest{PlanId: args[1]}))
+			if err != nil {
+				return err
+			}
+			return env.Printer.Object(v, valkeyColumns)
+		},
+	}
+}
+
+func valkeyTopologyCommand(env *Env) *cobra.Command {
+	return &cobra.Command{
+		Use:   "topology <кластер> <single|ha>",
+		Short: "Сменить топологию",
+		Long: "Рост до ha — без простоя: реплика присоединяется к живому инстансу,\n" +
+			"появляется read-endpoint. Сжатие до single переключает первичный,\n" +
+			"если он сидит на выводимой реплике; read-endpoint исчезает.",
+		Annotations: ops("valkey_change_topology"),
+		Args:        cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, project, id, err := env.valkeyTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			v, err := call(c.ValkeyChangeTopologyWithResponse(cmd.Context(), project, id,
+				tatnet.ChangeValkeyTopologyRequest{Topology: args[1]}))
+			if err != nil {
+				return err
+			}
+			return env.Printer.Object(v, valkeyColumns)
+		},
+	}
 }
 
 func valkeyParamsCommand(env *Env) *cobra.Command {

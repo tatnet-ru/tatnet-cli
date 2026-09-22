@@ -59,8 +59,8 @@ func TestCoveredTagsAreCoveredCompletely(t *testing.T) {
 	}
 	bound := boundOps(t)
 
-	// Двойники: у операции про приложение есть две формы адреса — через
-	// проект (/projects/{project_id}/apps/…) и плоская (/apps/…), с одним и
+	// Двойники: у операции над ресурсом проекта есть две формы адреса — через
+	// проект (/projects/{project_id}/<вид>/…) и плоская (/<вид>/…), с одним и
 	// тем же смыслом и одной политикой (api#1060). CLI нужна ровно одна из
 	// них, и держать вторую «выведенной» ради гейта значило бы плодить
 	// мёртвые команды. Поэтому операция считается покрытой, если выведен её
@@ -167,27 +167,50 @@ func TestCoverageSummary(t *testing.T) {
 		len(ops), covered, len(deferredTags))
 }
 
-// twinPath — адрес-двойник: скоупный путь приложения ↔ плоский. Для путей
-// без двойника возвращает пустую строку, которая ни с чем не совпадёт.
+// flatKinds — виды, у которых api держит плоские зеркала (api#1060):
+// приложения (#1061) и остальные семь (#1099). Список явный, а не «любой
+// путь под /projects/{project_id}»: двойником считаем только то, что api
+// зеркалит нарочно, иначе будущий скоупный путь, у которого случайно
+// найдётся плоский однофамилец с другим смыслом, молча засчитался бы
+// покрытым.
+var flatKinds = []string{
+	"apps", "vms", "functions", "volumes",
+	"pg-clusters", "valkey-clusters", "kubernetes-clusters", "load-balancers",
+}
+
+// twinPath — адрес-двойник: скоупный путь ↔ плоский. Для путей без
+// двойника возвращает пустую строку, которая ни с чем не совпадёт.
+// Двойник засчитывается, только если он есть в контракте (byKey), поэтому
+// /load-balancers/regions не станет «двойником» несуществующего пути.
 func twinPath(p string) string {
-	const scoped = "/projects/{project_id}/apps"
-	switch {
-	case strings.HasPrefix(p, scoped):
-		return "/apps" + strings.TrimPrefix(p, scoped)
-	case p == "/apps" || strings.HasPrefix(p, "/apps/"):
-		return scoped + strings.TrimPrefix(p, "/apps")
+	const project = "/projects/{project_id}"
+	for _, k := range flatKinds {
+		scoped := project + "/" + k
+		switch {
+		case p == scoped || strings.HasPrefix(p, scoped+"/"):
+			return "/" + k + strings.TrimPrefix(p, scoped)
+		case p == "/"+k || strings.HasPrefix(p, "/"+k+"/"):
+			return project + p
+		}
 	}
 	return ""
 }
 
 func TestTwinPath(t *testing.T) {
 	cases := map[string]string{
-		"/projects/{project_id}/apps":              "/apps",
-		"/projects/{project_id}/apps/{app_id}/env": "/apps/{app_id}/env",
-		"/apps/{app_id}/jobs/{job_id}/run":         "/projects/{project_id}/apps/{app_id}/jobs/{job_id}/run",
-		"/apps":                                    "/projects/{project_id}/apps",
-		"/projects/{project_id}/vms/{vm_id}":       "",
-		"/domains":                                 "",
+		"/projects/{project_id}/apps":                            "/apps",
+		"/projects/{project_id}/apps/{app_id}/env":               "/apps/{app_id}/env",
+		"/apps/{app_id}/jobs/{job_id}/run":                       "/projects/{project_id}/apps/{app_id}/jobs/{job_id}/run",
+		"/apps":                                                  "/projects/{project_id}/apps",
+		"/projects/{project_id}/vms/{vm_id}":                     "/vms/{vm_id}",
+		"/vms/{vm_id}/start":                                     "/projects/{project_id}/vms/{vm_id}/start",
+		"/pg-clusters":                                           "/projects/{project_id}/pg-clusters",
+		"/projects/{project_id}/valkey-clusters/{cluster_id}/ca": "/valkey-clusters/{cluster_id}/ca",
+		// Не-двойники: аккаунтные пути и виды без зеркал.
+		"/domains":                         "",
+		"/postgres/regions":                "",
+		"/projects/{project_id}":           "",
+		"/projects/{project_id}/dns-zones": "",
 	}
 	for in, want := range cases {
 		if got := twinPath(in); got != want {

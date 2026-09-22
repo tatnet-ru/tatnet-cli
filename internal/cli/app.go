@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -78,39 +77,20 @@ func (e *Env) optionalProject(ctx context.Context) (string, error) {
 }
 
 // appTarget — общая преамбула команд про одно приложение: клиент, проект и
-// id. Проект берётся из самого приложения, а не требуется заранее.
+// id. Проект берётся из самого приложения (flatTarget), а не требуется заранее.
 func (e *Env) appTarget(ctx context.Context, ref string) (*tatnet.ClientWithResponses, string, string, error) {
 	c, err := e.Client()
 	if err != nil {
 		return nil, "", "", err
 	}
-	project, err := e.optionalProject(ctx)
+	project, id, err := e.flatTarget(ctx, kindApp, ref,
+		func(ctx context.Context, project string) ([]any, error) { return e.listApps(ctx, project, 0) },
+		func(ctx context.Context, id string) (any, error) { return call(c.AppsGetAppByIdWithResponse(ctx, id)) },
+		"name")
 	if err != nil {
 		return nil, "", "", err
 	}
-	ref = strings.TrimSpace(ref)
-	if IsID(ref) {
-		// По id приложение достаётся напрямую, без списка и без проекта.
-		app, err := call(c.AppsGetAppByIdWithResponse(ctx, ref))
-		if err != nil {
-			return nil, "", "", err
-		}
-		return c, output.Value(app, "project_id"), ref, nil
-	}
-	all, err := e.listApps(ctx, project, 0)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("не удалось найти приложение %q: %w", ref, err)
-	}
-	id, err := resolveRef(ctx, kindApp, ref, func(context.Context) ([]any, error) { return all, nil }, "name")
-	if err != nil {
-		return nil, "", "", err
-	}
-	for _, it := range all {
-		if output.Value(it, "id") == id {
-			return c, output.Value(it, "project_id"), id, nil
-		}
-	}
-	return nil, "", "", fmt.Errorf("приложение %q найдено, но без проекта в ответе", ref)
+	return c, project, id, nil
 }
 
 func appListCommand(env *Env) *cobra.Command {

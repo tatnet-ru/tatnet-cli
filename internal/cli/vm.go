@@ -48,29 +48,27 @@ func (e *Env) listVMs(ctx context.Context, project string, limit int) ([]any, er
 	if err != nil {
 		return nil, err
 	}
+	// Плоский список по аккаунту (api#1060); проект — необязательный фильтр.
+	var pid *string
+	if project != "" {
+		pid = &project
+	}
 	return paginate(ctx, func(ctx context.Context, offset, size int) (any, error) {
-		return call(c.VmsListVmsWithResponse(ctx, project, &tatnet.VmsListVmsParams{
-			Limit: &size, Offset: &offset,
+		return call(c.VmsListVmsByAccountWithResponse(ctx, &tatnet.VmsListVmsByAccountParams{
+			ProjectId: pid, Limit: &size, Offset: &offset,
 		}))
 	}, limit, 0)
-}
-
-// resolveVM принимает id, имя или hostname.
-func (e *Env) resolveVM(ctx context.Context, project, ref string) (string, error) {
-	return resolveRef(ctx, kindVM, ref, func(ctx context.Context) ([]any, error) {
-		return e.listVMs(ctx, project, 0)
-	}, "name", "hostname")
 }
 
 func vmListCommand(env *Env) *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:         "list",
-		Short:       "Список ВМ проекта",
-		Annotations: ops("vms_list_vms"),
+		Short:       "Список ВМ проекта (без -p — по всему аккаунту)",
+		Annotations: ops("vms_list_vms_by_account"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := env.RequireProject(cmd.Context())
+			project, err := env.optionalProject(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -377,11 +375,10 @@ func (e *Env) vmTarget(ctx context.Context, ref string) (*tatnet.ClientWithRespo
 	if err != nil {
 		return nil, "", "", err
 	}
-	project, err := e.RequireProject(ctx)
-	if err != nil {
-		return nil, "", "", err
-	}
-	id, err := e.resolveVM(ctx, project, ref)
+	project, id, err := e.flatTarget(ctx, kindVM, ref,
+		func(ctx context.Context, project string) ([]any, error) { return e.listVMs(ctx, project, 0) },
+		func(ctx context.Context, id string) (any, error) { return call(c.VmsGetVmByIdWithResponse(ctx, id)) },
+		"name", "hostname")
 	if err != nil {
 		return nil, "", "", err
 	}

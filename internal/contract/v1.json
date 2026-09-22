@@ -387,6 +387,34 @@
         "title": "ChangePgTopologyRequest",
         "type": "object"
       },
+      "ChangeValkeyPlanRequest": {
+        "description": "Смена тарифа: только вверх (память, vCPU и диск не меньше текущих).\nУзлы ресайзятся по одному с перезагрузкой; продаваемые пределы\n(maxmemory/maxclients) поднимаются, когда все узлы на новых ресурсах.",
+        "properties": {
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "title": "ChangeValkeyPlanRequest",
+        "type": "object"
+      },
+      "ChangeValkeyTopologyRequest": {
+        "description": "Смена топологии: single ↔ ha. Рост — без простоя (реплика присоединяется\nк живому инстансу, появляется read-endpoint), сжатие — с переключением\nпервичного, если он сидит на выводимой реплике; read-endpoint исчезает.",
+        "properties": {
+          "topology": {
+            "title": "Topology",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topology"
+        ],
+        "title": "ChangeValkeyTopologyRequest",
+        "type": "object"
+      },
       "CreatePgBackupRequest": {
         "properties": {
           "label": {
@@ -7856,6 +7884,12 @@
             "title": "Disk Size",
             "type": "integer"
           },
+          "ephemeral": {
+            "default": false,
+            "description": "Ephemeral VM: billed per second of lifetime at the plan's hourly rate, no prepaid period or subscription; cannot be resized",
+            "title": "Ephemeral",
+            "type": "boolean"
+          },
           "floating_ips": {
             "description": "Floating IPs attached to the VM's interfaces, with their computed status",
             "items": {
@@ -8003,6 +8037,12 @@
             ],
             "description": "Custom disk size in GB (within plan limits)",
             "title": "Disk Size Gb"
+          },
+          "ephemeral": {
+            "default": false,
+            "description": "Ephemeral VM: no prepaid period or subscription. Billed per second of lifetime — from creation to the deletion request — at the plan's hourly rate (plus extra disk and public IP) through an hourly usage meter. Meant for short-lived machines (CI runners, batch jobs). Mutually exclusive with period_months/period_days and backup_count; cannot be resized; insufficient funds → 402 and no capacity → 503 immediately instead of a queued VM.",
+            "title": "Ephemeral",
+            "type": "boolean"
           },
           "hostname": {
             "description": "VM hostname (lowercase letters, digits, hyphens)",
@@ -8855,6 +8895,11 @@
               }
             ]
           },
+          "plan_change_pending": {
+            "default": false,
+            "title": "Plan Change Pending",
+            "type": "boolean"
+          },
           "project_id": {
             "title": "Project Id",
             "type": "string"
@@ -8908,6 +8953,11 @@
           "topology": {
             "title": "Topology",
             "type": "string"
+          },
+          "topology_change_pending": {
+            "default": false,
+            "title": "Topology Change Pending",
+            "type": "boolean"
           },
           "user": {
             "default": "default",
@@ -9109,6 +9159,11 @@
               }
             ]
           },
+          "plan_change_pending": {
+            "default": false,
+            "title": "Plan Change Pending",
+            "type": "boolean"
+          },
           "project_id": {
             "title": "Project Id",
             "type": "string"
@@ -9162,6 +9217,11 @@
           "topology": {
             "title": "Topology",
             "type": "string"
+          },
+          "topology_change_pending": {
+            "default": false,
+            "title": "Topology Change Pending",
+            "type": "boolean"
           },
           "user": {
             "default": "default",
@@ -12223,6 +12283,841 @@
         ]
       }
     },
+    "/functions": {
+      "get": {
+        "operationId": "functions_list_functions_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1Function_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List functions",
+        "tags": [
+          "functions"
+        ]
+      }
+    },
+    "/functions/{function_id}": {
+      "delete": {
+        "operationId": "functions_delete_function_route_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a function",
+        "tags": [
+          "functions"
+        ]
+      },
+      "get": {
+        "operationId": "functions_get_function_route_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Function"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a function",
+        "tags": [
+          "functions"
+        ]
+      },
+      "patch": {
+        "description": "AWS-parity update (UpdateFunctionCode + UpdateFunctionConfiguration):\nPATCH the file map / handler / runtime / name / vpc_id, then POST\n…/deploy to build and roll the new code (the \"publish\" analogue).",
+        "operationId": "functions_update_function_route_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1FunctionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Function"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a function (code and/or configuration)",
+        "tags": [
+          "functions"
+        ]
+      }
+    },
+    "/functions/{function_id}/deploy": {
+      "post": {
+        "operationId": "functions_deploy_function_route_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1FunctionDeployResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Build & deploy a function",
+        "tags": [
+          "functions"
+        ]
+      }
+    },
+    "/functions/{function_id}/env": {
+      "get": {
+        "operationId": "functions_list_env_vars_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1EnvVar_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List environment variables",
+        "tags": [
+          "functions"
+        ]
+      },
+      "post": {
+        "operationId": "functions_add_env_var_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1EnvVarCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1EnvVar"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Create or set an environment variable",
+        "tags": [
+          "functions"
+        ]
+      }
+    },
+    "/functions/{function_id}/env/{env_var_id}": {
+      "delete": {
+        "operationId": "functions_delete_env_var_route_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "env_var_id",
+            "required": true,
+            "schema": {
+              "title": "Env Var Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete an environment variable",
+        "tags": [
+          "functions"
+        ]
+      }
+    },
+    "/kubernetes-clusters": {
+      "get": {
+        "operationId": "kubernetes_list_clusters_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1K8sCluster_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List Kubernetes clusters in a project",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
+    "/kubernetes-clusters/{cluster_id}": {
+      "delete": {
+        "operationId": "kubernetes_delete_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a Kubernetes cluster",
+        "tags": [
+          "kubernetes"
+        ]
+      },
+      "get": {
+        "operationId": "kubernetes_get_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1K8sCluster"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a Kubernetes cluster",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
+    "/kubernetes-clusters/{cluster_id}/kubeconfig": {
+      "get": {
+        "operationId": "kubernetes_get_kubeconfig_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Kubeconfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Download the cluster-admin kubeconfig",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
+    "/kubernetes-clusters/{cluster_id}/node-pools/{pool_id}/scale": {
+      "post": {
+        "operationId": "kubernetes_scale_node_pool_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pool_id",
+            "required": true,
+            "schema": {
+              "title": "Pool Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1K8sScale"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1K8sNodePool"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Scale a worker node pool",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
+    "/kubernetes-clusters/{cluster_id}/nodes": {
+      "get": {
+        "description": "Кто есть кто: нода Kubernetes ↔ машина TatNet.\n\nНужен CSI-драйверу, у которого нет другого способа это узнать. Общего имени\nу ноды и машины нет (Kubernetes зовёт ноду `talos-b25-9uq`, мы — своим\nhostname), а положить идентичность в машинный конфиг нельзя: Talos не\nпринимает `machine.files` в immediate-режиме, и попытка доставить их так\nроняет ЛЮБУЮ конвергенцию конфига живой ноды. Поэтому связка — ЗАПРОС по\nадресу, а не снимок, розданный заранее: ноды добавляются и уезжают, и ответ\nобязан пересчитываться.",
+        "operationId": "kubernetes_list_cluster_nodes_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/V1K8sNode"
+                  },
+                  "title": "Response Kubernetes List Cluster Nodes By Id",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List the cluster's nodes and their backing VMs",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
+    "/kubernetes-clusters/{cluster_id}/upgrade": {
+      "post": {
+        "description": "Bump the desired Kubernetes version; nodes are rolled one at a time\n(control plane first) by the platform. Track progress via ``upgrading``\non the cluster resource.",
+        "operationId": "kubernetes_upgrade_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1K8sUpgrade"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1K8sCluster"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Upgrade the Kubernetes version",
+        "tags": [
+          "kubernetes"
+        ]
+      }
+    },
     "/kubernetes/regions": {
       "get": {
         "operationId": "kubernetes_list_regions",
@@ -12246,6 +13141,85 @@
         "summary": "Kubernetes regions and offered versions",
         "tags": [
           "kubernetes"
+        ]
+      }
+    },
+    "/load-balancers": {
+      "get": {
+        "operationId": "load_balancers_list_lbs_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LoadBalancerResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List load balancers",
+        "tags": [
+          "load-balancers"
         ]
       }
     },
@@ -12438,6 +13412,1175 @@
           }
         ],
         "summary": "Load-balancer regions",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}": {
+      "delete": {
+        "description": "Flips the INTENT (desired_state='deleting'); the api reconciler removes\nthe node VMs and stamps nodes_released_at, the region tears down OVN.",
+        "operationId": "load_balancers_delete_lb_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a load balancer",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "get": {
+        "operationId": "load_balancers_get_lb_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadBalancerDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a load balancer",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "patch": {
+        "description": "node_count only — listeners/rules/groups/targets live under /config and\nthe granular sub-resources (the legacy flat body 422s in the schema).",
+        "operationId": "load_balancers_update_lb_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1LBUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadBalancerDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a load balancer",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/config": {
+      "get": {
+        "description": "The whole document; CCM-owned objects are included and marked\nmanaged_by='ccm' (read-only for the user PUT).",
+        "operationId": "load_balancers_get_lb_config_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get the LB config document",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "put": {
+        "description": "Declarative replacement of the USER-owned scope (§5.3 write order);\nCCM-owned objects are untouched.",
+        "operationId": "load_balancers_put_lb_config_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBConfigSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the user-owned LB config",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/listeners": {
+      "post": {
+        "operationId": "load_balancers_create_listener_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBListenerSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Add a listener",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/listeners/{listener_id}": {
+      "delete": {
+        "operationId": "load_balancers_delete_listener_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a listener",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "patch": {
+        "description": "protocol never changes here (extra='forbid' in the schema → 422): the\ngenerated `mode` column anchors the composite FKs — a protocol change is\ndelete+recreate through PUT /config.",
+        "operationId": "load_balancers_patch_listener_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBListenerPatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a listener",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/listeners/{listener_id}/certificates": {
+      "put": {
+        "operationId": "load_balancers_put_listener_certificates_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBListenerCertificatesPutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace a listener's certificates",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/listeners/{listener_id}/rules": {
+      "post": {
+        "operationId": "load_balancers_create_listener_rule_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBListenerRuleSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerRuleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Add a rule",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "put": {
+        "description": "Replace the prioritized rule set; the listener's default_action row is\nkept (it belongs to the listener, PATCH it there).",
+        "operationId": "load_balancers_put_listener_rules_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBRulesPutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the rule set",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/listeners/{listener_id}/rules/{rule_id}": {
+      "delete": {
+        "operationId": "load_balancers_delete_listener_rule_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a rule",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "patch": {
+        "operationId": "load_balancers_patch_listener_rule_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "listener_id",
+            "required": true,
+            "schema": {
+              "title": "Listener Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBRulePatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBListenerRuleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a rule",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/managed-config": {
+      "put": {
+        "description": "The ONLY write path of the managed_by='ccm' scope: the in-cluster CCM\nreconciles Services through it; user-owned objects are untouched (the\nCCM's blast radius stays its own scope).",
+        "operationId": "load_balancers_put_lb_managed_config_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBConfigSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the CCM-owned LB config (cloud-controller-manager)",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/target-groups": {
+      "post": {
+        "operationId": "load_balancers_create_target_group_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBTargetGroupSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBTargetGroupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Add a target group",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/target-groups/{tg_id}": {
+      "delete": {
+        "operationId": "load_balancers_delete_target_group_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tg_id",
+            "required": true,
+            "schema": {
+              "title": "Tg Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a target group",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "patch": {
+        "description": "protocol / target_type never change here (extra='forbid' → 422): both\ndefine the row's identity (generated `mode` anchors the composite FKs).",
+        "operationId": "load_balancers_patch_target_group_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tg_id",
+            "required": true,
+            "schema": {
+              "title": "Tg Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBTargetGroupPatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBTargetGroupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a target group",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/target-groups/{tg_id}/targets": {
+      "post": {
+        "operationId": "load_balancers_add_target_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tg_id",
+            "required": true,
+            "schema": {
+              "title": "Tg Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBTargetSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBTargetGroupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Add a target",
+        "tags": [
+          "load-balancers"
+        ]
+      },
+      "put": {
+        "operationId": "load_balancers_put_targets_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tg_id",
+            "required": true,
+            "schema": {
+              "title": "Tg Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LBTargetsPutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LBTargetGroupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the target set",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/load-balancers/{lb_id}/target-groups/{tg_id}/targets/{target_id}": {
+      "delete": {
+        "operationId": "load_balancers_delete_target_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tg_id",
+            "required": true,
+            "schema": {
+              "title": "Tg Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "title": "Target Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Remove a target",
         "tags": [
           "load-balancers"
         ]
@@ -13190,6 +15333,875 @@
         "summary": "Storage usage per bucket",
         "tags": [
           "object-storage"
+        ]
+      }
+    },
+    "/pg-clusters": {
+      "get": {
+        "operationId": "postgres_list_clusters_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_PgClusterResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List Postgres clusters in a project",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}": {
+      "delete": {
+        "description": "202: the row goes to ``deleting`` and the region tears the cluster down.\nThe backup repository outlives it by 14 days, so a restore is still possible\nafter this call.",
+        "operationId": "postgres_delete_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a Postgres cluster",
+        "tags": [
+          "postgres"
+        ]
+      },
+      "get": {
+        "operationId": "postgres_get_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a Postgres cluster",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/allowlist": {
+      "put": {
+        "description": "Public clusters only — a cluster in a VPC has no public address (422).\nFor a public cluster the allowlist is the whole network filter: an empty\nlist means nobody can connect.",
+        "operationId": "postgres_update_allowlist_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePgAllowlistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the allowed IP list",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/backups": {
+      "get": {
+        "description": "``pitr_window`` spans the oldest completed backup to the last archived\nWAL. Either bound being null means there is no window — restore is not\npossible yet, which is not the same as \"no backups\".",
+        "operationId": "postgres_list_backups_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgBackupsListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List backups and the PITR window",
+        "tags": [
+          "postgres"
+        ]
+      },
+      "post": {
+        "description": "Manual backups never expire, so at most 5 live ones per cluster — they\nwould otherwise eat the repository quota the nightly automatic backups need.\nThe row starts ``requested``; the node takes it from there.",
+        "operationId": "postgres_create_backup_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePgBackupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgBackupsListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Request a manual backup",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/backups/{backup_id}": {
+      "delete": {
+        "description": "202: the row goes to ``deleting`` and the region expires it. The newest\ncompleted backup cannot be deleted — the region never expires it, so the\nrequest would hang forever.",
+        "operationId": "postgres_delete_backup_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "backup_id",
+            "required": true,
+            "schema": {
+              "title": "Backup Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a backup",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/ca": {
+      "get": {
+        "description": "Per-cluster CA, for connecting with ``sslmode=verify-full``.\n``ready: false`` while the region has not issued it yet.",
+        "operationId": "postgres_get_cluster_ca_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgCaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Download the cluster CA certificate",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/nodes/{ordinal}/replace": {
+      "post": {
+        "description": "Re-create one node, current image or not — the ops escape hatch.",
+        "operationId": "postgres_replace_node_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ordinal",
+            "required": true,
+            "schema": {
+              "title": "Ordinal",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgReplaceNodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace one node",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/parameters": {
+      "get": {
+        "description": "``parameters`` is the intent, ``applied_parameters`` is what the region\nconfirmed reached the cluster, and ``catalog`` carries the allowed range of\neach parameter already computed for this cluster's plan.",
+        "operationId": "postgres_get_parameters_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgParametersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Server parameters and their catalog",
+        "tags": [
+          "postgres"
+        ]
+      },
+      "put": {
+        "description": "A full replacement, not a merge: a parameter absent from the request is\ncleared. Parameters marked ``restart`` in the catalog only take effect after\n``POST …/restart``.",
+        "operationId": "postgres_update_parameters_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePgParametersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgParametersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace server parameters",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/plan": {
+      "put": {
+        "description": "Upwards only: memory, vCPU and disk of the new plan must be at least the\ncurrent ones. Nodes are resized one at a time, replicas first and the leader\nlast — a single-node cluster is down for about a minute, an ha one fails\nover once. Watch ``plan_change_pending``.",
+        "operationId": "postgres_change_plan_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePgPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the node plan",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/replace-nodes": {
+      "post": {
+        "description": "Marks every live node whose VM is not on the newest ready image build in\nthe region. Replacements run one at a time — replicas, leader, witness — and\nthe database stays reachable throughout. ``requested: 0`` means every node\nis already current.",
+        "operationId": "postgres_replace_outdated_nodes_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgReplaceNodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace outdated nodes with the newest image",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/restart": {
+      "post": {
+        "description": "Restarts nodes to apply postmaster-level parameters — replicas first,\nleader last. ``restart_pending_ack`` stays true until the region confirms.",
+        "operationId": "postgres_restart_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgParametersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Request a restart",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/roles/{role}/password": {
+      "post": {
+        "description": "The new password is in this response and nowhere else.\n\n``applied: false`` means the region has not run ``ALTER ROLE`` yet — **the\ndatabase still accepts the old password until it does.** Do not treat the\n200 as the moment the old one stopped working.",
+        "operationId": "postgres_reset_role_password_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "title": "Role",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgRolePasswordResetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Issue a new password for a role",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
+    "/pg-clusters/{cluster_id}/topology": {
+      "put": {
+        "description": "Growing to ha adds nodes without downtime; shrinking switches the leader\noff any node being removed first. Price follows immediately (plan × nodes).\nWatch ``topology_change_pending``.",
+        "operationId": "postgres_change_topology_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePgTopologyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the topology (single ↔ ha)",
+        "tags": [
+          "postgres"
         ]
       }
     },
@@ -18923,6 +21935,73 @@
         ]
       }
     },
+    "/projects/{project_id}/valkey-clusters/{cluster_id}/plan": {
+      "put": {
+        "description": "Upgrade only: memory, vCPU and disk of the new plan must not be below\nthe current ones. Nodes are resized one at a time (each reboots); the\nmemory and connection limits rise once every node is on the new plan.\n`plan_change_pending` on the cluster shows the change is still in\nprogress.",
+        "operationId": "valkey_change_plan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeValkeyPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the node plan",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
     "/projects/{project_id}/valkey-clusters/{cluster_id}/replace-nodes": {
       "post": {
         "description": "One node at a time, replicas before the leader. ``requested: 0`` means\nevery node is already on the newest image build in the region.",
@@ -18975,6 +22054,73 @@
           }
         ],
         "summary": "Replace outdated nodes with the newest image",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/projects/{project_id}/valkey-clusters/{cluster_id}/topology": {
+      "put": {
+        "description": "single ↔ ha. Growing adds a replica and a read endpoint without\ndowntime; shrinking removes the replica and the read endpoint at once\n(a switchover happens if the primary is on the replica).\n`topology_change_pending` on the cluster shows the change is still in\nprogress.",
+        "operationId": "valkey_change_topology",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeValkeyTopologyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the topology",
         "tags": [
           "valkey"
         ]
@@ -20192,6 +23338,611 @@
         ]
       }
     },
+    "/valkey-clusters": {
+      "get": {
+        "operationId": "valkey_list_clusters_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ValkeyClusterResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List Valkey clusters in a project",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}": {
+      "delete": {
+        "description": "202: the row goes to ``deleting`` and the region tears it down. A cache\nhas no backups — the data is gone.",
+        "operationId": "valkey_delete_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a Valkey cluster",
+        "tags": [
+          "valkey"
+        ]
+      },
+      "get": {
+        "operationId": "valkey_get_cluster_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a Valkey cluster",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/allowlist": {
+      "put": {
+        "description": "For a public cluster this list **is** the network filter — there is no\nsecond layer behind it. An empty list means no client can connect.",
+        "operationId": "valkey_update_allowlist_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateValkeyAllowlistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the allowed IP list",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/ca": {
+      "get": {
+        "description": "The cluster is TLS-only; this CA is what a ``rediss://`` client verifies\nagainst. ``ready: false`` while the region has not issued it — the same\nshape as the Postgres CA and the Kubernetes kubeconfig.",
+        "operationId": "valkey_get_cluster_ca_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyCaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Download the cluster CA certificate",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/nodes/{ordinal}/replace": {
+      "post": {
+        "description": "Re-create one node, current image or not — the ops escape hatch.",
+        "operationId": "valkey_replace_node_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ordinal",
+            "required": true,
+            "schema": {
+              "title": "Ordinal",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyReplaceNodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace one node",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/params": {
+      "put": {
+        "description": "maxmemory, eviction policy, max clients and persistence. The region\napplies them to the running server, so no restart is needed.",
+        "operationId": "valkey_update_params_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateValkeyParamsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update cache parameters",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/password": {
+      "post": {
+        "description": "The new password is in this response and nowhere else. ``applied:\nfalse`` means the region has not pushed it to the server yet — **the old\npassword still works until it does.**",
+        "operationId": "valkey_reset_password_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyPasswordResetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Issue a new password",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/plan": {
+      "put": {
+        "description": "Upgrade only: memory, vCPU and disk of the new plan must not be below\nthe current ones. Nodes are resized one at a time (each reboots); the\nmemory and connection limits rise once every node is on the new plan.\n`plan_change_pending` on the cluster shows the change is still in\nprogress.",
+        "operationId": "valkey_change_plan_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeValkeyPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the node plan",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/replace-nodes": {
+      "post": {
+        "description": "One node at a time, replicas before the leader. ``requested: 0`` means\nevery node is already on the newest image build in the region.",
+        "operationId": "valkey_replace_outdated_nodes_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyReplaceNodesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace outdated nodes with the newest image",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
+    "/valkey-clusters/{cluster_id}/topology": {
+      "put": {
+        "description": "single ↔ ha. Growing adds a replica and a read endpoint without\ndowntime; shrinking removes the replica and the read endpoint at once\n(a switchover happens if the primary is on the replica).\n`topology_change_pending` on the cluster shows the change is still in\nprogress.",
+        "operationId": "valkey_change_topology_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeValkeyTopologyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValkeyClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Change the topology",
+        "tags": [
+          "valkey"
+        ]
+      }
+    },
     "/valkey/regions": {
       "get": {
         "description": "Versions are per-region: one is offered only where a ready node image is\nlaid out on every node of that region.",
@@ -20216,6 +23967,864 @@
         "summary": "Valkey regions, versions, plans and cache modes",
         "tags": [
           "valkey"
+        ]
+      }
+    },
+    "/vms": {
+      "get": {
+        "operationId": "vms_list_vms_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1VM_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List VMs in a project",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}": {
+      "delete": {
+        "description": "202, and the body says which of the two things happened.\n\nA VM that was never provisioned is gone when this returns (``deleted``).\nA provisioned one is moved to ``deleting`` and a region tears it down over\nthe following minutes — it stays visible in ``GET …/vms`` until then, so a\nscript that deletes and immediately re-creates by name has to wait.\n\nThis used to answer 204, which could not express the difference; the\nservice's own return value cannot either (it reports ``success`` for both\nand puts the distinction in a human-readable message).",
+        "operationId": "vms_delete_vm_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a VM",
+        "tags": [
+          "vms"
+        ]
+      },
+      "get": {
+        "operationId": "vms_get_vm_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1VM"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/backups": {
+      "get": {
+        "operationId": "vms_list_backups_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1Backup_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List VM backups",
+        "tags": [
+          "vms"
+        ]
+      },
+      "post": {
+        "operationId": "vms_create_backup_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1BackupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Backup"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Create a VM backup",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/backups/{backup_id}": {
+      "delete": {
+        "operationId": "vms_delete_backup_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "backup_id",
+            "required": true,
+            "schema": {
+              "title": "Backup Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a VM backup",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/restart": {
+      "post": {
+        "operationId": "vms_restart_vm_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1PowerActionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Restart a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/start": {
+      "post": {
+        "operationId": "vms_start_vm_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/VMStartRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1PowerActionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Start a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/stop": {
+      "post": {
+        "operationId": "vms_stop_vm_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1PowerActionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Stop a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/volumes": {
+      "get": {
+        "operationId": "volumes_list_volumes_by_account",
+        "parameters": [
+          {
+            "description": "Only resources of this project (optional)",
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only resources of this project (optional)",
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_V1Volume_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List block volumes in a project",
+        "tags": [
+          "volumes"
+        ]
+      }
+    },
+    "/volumes/{volume_id}": {
+      "delete": {
+        "operationId": "volumes_delete_volume_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume_id",
+            "required": true,
+            "schema": {
+              "title": "Volume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a block volume",
+        "tags": [
+          "volumes"
+        ]
+      },
+      "get": {
+        "operationId": "volumes_get_volume_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume_id",
+            "required": true,
+            "schema": {
+              "title": "Volume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Volume"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get a block volume",
+        "tags": [
+          "volumes"
+        ]
+      },
+      "patch": {
+        "operationId": "volumes_resize_volume_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume_id",
+            "required": true,
+            "schema": {
+              "title": "Volume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1VolumeResize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Volume"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Grow a block volume",
+        "tags": [
+          "volumes"
+        ]
+      }
+    },
+    "/volumes/{volume_id}/attach": {
+      "post": {
+        "operationId": "volumes_attach_volume_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume_id",
+            "required": true,
+            "schema": {
+              "title": "Volume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1VolumeAttach"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Volume"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Attach a volume to a VM",
+        "tags": [
+          "volumes"
+        ]
+      }
+    },
+    "/volumes/{volume_id}/detach": {
+      "post": {
+        "operationId": "volumes_detach_volume_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "volume_id",
+            "required": true,
+            "schema": {
+              "title": "Volume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/V1VolumeDetach"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Volume"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Detach a volume from its VM",
+        "tags": [
+          "volumes"
         ]
       }
     },

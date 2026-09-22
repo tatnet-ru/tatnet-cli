@@ -22,6 +22,7 @@ var pgColumns = []output.Column{
 	output.Col("статус", "status"),
 	output.Col("хост", "host"),
 	output.Col("порт", "port"),
+	output.WideCol("проект", "project_id"),
 	output.WideCol("id", "id"),
 	output.WideCol("тариф", "plan.name"),
 	output.WideCol("в месяц", "monthly_cost"),
@@ -32,7 +33,7 @@ func newPGCommand(env *Env) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "pg",
 		Aliases: []string{"postgres"},
-		Short:   "Управляемый PostgreSQL",
+		Short:   "Управляемый PostgreSQL (без -p — по всему аккаунту)",
 	}
 	cmd.AddCommand(
 		pgListCommand(env),
@@ -58,9 +59,14 @@ func (e *Env) listPGClusters(ctx context.Context, project string) ([]any, error)
 	if err != nil {
 		return nil, err
 	}
+	// Плоский список по аккаунту (api#1060); проект — необязательный фильтр.
+	var pid *string
+	if project != "" {
+		pid = &project
+	}
 	return paginate(ctx, func(ctx context.Context, offset, size int) (any, error) {
-		return call(c.PostgresListClustersWithResponse(ctx, project, &tatnet.PostgresListClustersParams{
-			Limit: &size, Offset: &offset,
+		return call(c.PostgresListClustersByAccountWithResponse(ctx, &tatnet.PostgresListClustersByAccountParams{
+			ProjectId: pid, Limit: &size, Offset: &offset,
 		}))
 	}, 0, 0)
 }
@@ -70,13 +76,12 @@ func (e *Env) pgTarget(ctx context.Context, ref string) (*tatnet.ClientWithRespo
 	if err != nil {
 		return nil, "", "", err
 	}
-	project, err := e.RequireProject(ctx)
-	if err != nil {
-		return nil, "", "", err
-	}
-	id, err := resolveRef(ctx, kindPg, ref, func(ctx context.Context) ([]any, error) {
-		return e.listPGClusters(ctx, project)
-	}, "name")
+	project, id, err := e.flatTarget(ctx, kindPg, ref,
+		e.listPGClusters,
+		func(ctx context.Context, id string) (any, error) {
+			return call(c.PostgresGetClusterByIdWithResponse(ctx, id))
+		},
+		"name")
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -87,10 +92,10 @@ func pgListCommand(env *Env) *cobra.Command {
 	return &cobra.Command{
 		Use:         "list",
 		Short:       "Кластеры проекта",
-		Annotations: ops("postgres_list_clusters"),
+		Annotations: ops("postgres_list_clusters_by_account"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := env.RequireProject(cmd.Context())
+			project, err := env.optionalProject(cmd.Context())
 			if err != nil {
 				return err
 			}
