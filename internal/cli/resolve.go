@@ -122,3 +122,61 @@ func (e *Env) listProjects(ctx context.Context) ([]any, error) {
 func (e *Env) ResolveProject(ctx context.Context, ref string) (string, error) {
 	return resolveRef(ctx, kindProject, ref, e.listProjects, "name")
 }
+
+// flatTarget — «id или имя» → (проект, id) для видов с плоскими путями
+// (api#1060): проект НЕ требуется, он узнаётся из найденного ресурса.
+//
+// Раньше каждый вид сперва требовал -p/--project, а уже потом искал имя внутри
+// проекта: ключу, которому не дали GET /projects, был недоступен сам адрес
+// ресурса. Теперь проект, если задан, только сужает поиск.
+//
+// Одна реализация на все виды — приложения, ВМ, Postgres, Valkey: четыре
+// копии одной логики разъехались бы молча.
+func (e *Env) flatTarget(ctx context.Context, kind refKind, ref string,
+	list func(ctx context.Context, project string) ([]any, error),
+	getByID func(ctx context.Context, id string) (any, error),
+	nameFields ...string,
+) (string, string, error) {
+	project, err := e.optionalProject(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	ref = strings.TrimSpace(ref)
+	if IsID(ref) {
+		// По id ресурс достаётся напрямую, без списка и без проекта.
+		obj, err := getByID(ctx, ref)
+		if err != nil {
+			return "", "", err
+		}
+		pid, err := projectOf(kind, obj)
+		return pid, ref, err
+	}
+	all, err := list(ctx, project)
+	if err != nil {
+		return "", "", fmt.Errorf("не удалось найти %s %q: %w", kind.one, ref, err)
+	}
+	id, err := resolveRef(ctx, kind, ref, func(context.Context) ([]any, error) { return all, nil }, nameFields...)
+	if err != nil {
+		return "", "", err
+	}
+	for _, it := range all {
+		if output.Value(it, "id") == id {
+			pid, err := projectOf(kind, it)
+			return pid, id, err
+		}
+	}
+	return "", "", fmt.Errorf("у найденного (%s) нет проекта в ответе", kind.one)
+}
+
+// projectOf — проект из ответа, закрытое на отказ. output.Value отдаёт «-»
+// на отсутствующее поле, и без этой проверки резолвер молча собирал бы адрес
+// /projects/-/… : запрос уходил бы по неверному пути, а ошибка приходила бы
+// невнятным 404 от сервера. Так и было в тесте vm stop — он проходил на
+// /projects/-/vms/…/stop, потому что подставной сервер не отдавал project_id.
+func projectOf(kind refKind, obj any) (string, error) {
+	pid := output.Value(obj, "project_id")
+	if pid == "" || pid == "-" {
+		return "", fmt.Errorf("у найденного (%s) нет проекта в ответе", kind.one)
+	}
+	return pid, nil
+}

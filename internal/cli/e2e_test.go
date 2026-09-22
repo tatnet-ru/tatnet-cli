@@ -17,6 +17,7 @@ import (
 type fakeAPI struct {
 	t        *testing.T
 	requests []string
+	lastBody map[string]any
 	vms      int
 }
 
@@ -70,13 +71,28 @@ func (f *fakeAPI) handler() http.Handler {
 			var data []any
 			for i := offset; i < offset+limit && i < f.vms; i++ {
 				data = append(data, map[string]any{
+					// project_id — как у реального V1VM: без него резолвер не знает,
+					// по какому адресу действовать, и падает закрыто.
 					"id": fmt.Sprintf("vm-%03d", i), "name": fmt.Sprintf("web-%d", i),
-					"hostname": fmt.Sprintf("web-%d", i), "status": "running",
+					"project_id": "11111111-1111-1111-1111-111111111111",
+					"hostname":   fmt.Sprintf("web-%d", i), "status": "running",
 					"vcpu": 2, "mem": 2048, "disk_size": 20,
 					"ipv4_addresses": []any{"10.0.0." + strconv.Itoa(i%250)},
 				})
 			}
 			writeJSON(w, page(data, offset, limit))
+		case (r.URL.Path == "/pg-clusters" || r.URL.Path == "/valkey-clusters") && r.Method == http.MethodGet:
+			writeJSON(w, page([]any{map[string]any{"id": "db-000", "name": "main",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "running"}}, 0, 100))
+		case r.URL.Path == "/projects/11111111-1111-1111-1111-111111111111/pg-clusters/db-000" && r.Method == http.MethodGet:
+			writeJSON(w, map[string]any{"id": "db-000", "name": "main",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "running"})
+		case r.URL.Path == "/projects/11111111-1111-1111-1111-111111111111/valkey-clusters/db-000/plan" && r.Method == http.MethodPut:
+			var body map[string]any
+			json.NewDecoder(r.Body).Decode(&body)
+			f.lastBody = body
+			writeJSON(w, map[string]any{"id": "db-000", "name": "main",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "resizing"})
 		case strings.HasSuffix(r.URL.Path, "/stop"):
 			writeJSON(w, map[string]any{"status": "stopping", "message": "принято"})
 		case r.URL.Path == "/vpcs":
@@ -152,7 +168,10 @@ func TestE2EProjectResolvedByName(t *testing.T) {
 		if strings.HasPrefix(r, "GET /projects?") {
 			sawProjects = true
 		}
-		if strings.Contains(r, "/projects/11111111-1111-1111-1111-111111111111/vms") {
+		// С api#1060 список идёт плоским путём, а проект — фильтром. Гарантия
+		// теста прежняя: имя проекта разрешено в ИДЕНТИФИКАТОР, и в запрос ушёл
+		// именно он, а не имя.
+		if strings.HasPrefix(r, "GET /vms?") && strings.Contains(r, "project_id=11111111-1111-1111-1111-111111111111") {
 			sawVMs = true
 		}
 	}
@@ -213,6 +232,21 @@ func TestE2EPowerAction(t *testing.T) {
 	if !strings.Contains(out, "stopping") {
 		t.Fatalf("результат действия не выведен: %q", out)
 	}
+	// Адрес, а не только вывод: раньше тест проходил и на /projects/-/…,
+	// потому что подставной сервер принимал любой путь, кончающийся на /stop.
+	want := "POST /projects/11111111-1111-1111-1111-111111111111/vms/vm-000/stop"
+	if !hasRequest(api.requests, want) {
+		t.Fatalf("действие ушло не туда, ждали %q: %v", want, api.requests)
+	}
+}
+
+func hasRequest(reqs []string, prefix string) bool {
+	for _, r := range reqs {
+		if strings.HasPrefix(r, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // Отказ API должен доходить до пользователя причиной, а не кодом.
@@ -309,9 +343,14 @@ func TestE2EMissingProjectIsExplained(t *testing.T) {
 	srv := httptest.NewServer(api.handler())
 	defer srv.Close()
 
-	_, _, err := run(t, srv, "vm", "list")
+	// Проверяется на create, а не на list: с api#1060 список без проекта —
+	// законный запрос по всему аккаунту, а создание по-прежнему требует
+	// проект, и отказ обязан назвать недостающее. Обязательные флаги заданы,
+	// чтобы упало именно на проекте, а не на валидации флагов cobra.
+	_, _, err := run(t, srv, "vm", "create", "--name", "x", "--image", "i",
+		"--plan", "p", "--cluster", "c", "--user", "u")
 	if err == nil {
-		t.Fatal("команда без проекта отработала")
+		t.Fatal("создание без проекта отработало")
 	}
 	if !strings.Contains(err.Error(), "--project") {
 		t.Fatalf("отказ не назвал недостающее: %v", err)
@@ -385,5 +424,60 @@ func TestE2EAppListAccountWideAndByProject(t *testing.T) {
 	joined := strings.Join(api.requests, "\n")
 	if !strings.Contains(joined, "project_id=11111111-1111-1111-1111-111111111111") {
 		t.Errorf("проект должен уйти фильтром в плоский /apps:\n%s", joined)
+	}
+}
+
+// ВМ, Postgres и Valkey — те же правила, что у приложений (api#1060):
+// проект не требуется, он узнаётся из найденного ресурса.
+func TestE2EVMActionWithoutProject(t *testing.T) {
+	api := &fakeAPI{t: t, vms: 1}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	if _, _, err := run(t, srv, "vm", "stop", "web-0"); err != nil {
+		t.Fatalf("vm stop без проекта: %v", err)
+	}
+	if !hasRequest(api.requests, "GET /vms?") {
+		t.Errorf("ВМ должна искаться плоским /vms: %v", api.requests)
+	}
+	if hasRequest(api.requests, "GET /projects?") {
+		t.Errorf("без -p список проектов не нужен, а он запрошен: %v", api.requests)
+	}
+	if !hasRequest(api.requests, "POST /projects/11111111-1111-1111-1111-111111111111/vms/vm-000/stop") {
+		t.Errorf("проект должен взяться из найденной ВМ: %v", api.requests)
+	}
+}
+
+func TestE2EPGGetWithoutProject(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	if _, _, err := run(t, srv, "pg", "get", "main"); err != nil {
+		t.Fatalf("pg get без проекта: %v", err)
+	}
+	if !hasRequest(api.requests, "GET /pg-clusters?") || hasRequest(api.requests, "GET /projects?") {
+		t.Errorf("кластер должен искаться плоским путём без списка проектов: %v", api.requests)
+	}
+	if !hasRequest(api.requests, "GET /projects/11111111-1111-1111-1111-111111111111/pg-clusters/db-000") {
+		t.Errorf("проект должен взяться из найденного кластера: %v", api.requests)
+	}
+}
+
+// valkey plan появилась в этом же изменении: операция была в api, а CLI её не
+// выводил, и гейт покрытия держал её красной.
+func TestE2EValkeyPlan(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	if _, _, err := run(t, srv, "valkey", "plan", "main", "vk1.2g"); err != nil {
+		t.Fatalf("valkey plan: %v", err)
+	}
+	if !hasRequest(api.requests, "PUT /projects/11111111-1111-1111-1111-111111111111/valkey-clusters/db-000/plan") {
+		t.Fatalf("смена тарифа ушла не туда: %v", api.requests)
+	}
+	if api.lastBody["plan_id"] != "vk1.2g" {
+		t.Fatalf("в теле не тот тариф: %v", api.lastBody)
 	}
 }
