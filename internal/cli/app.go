@@ -199,10 +199,13 @@ func appCreateCommand(env *Env) *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVar(&name, "name", "", "имя приложения (обязательно)")
-	f.StringVar(&appType, "type", "", "тип: static, ssr, backend")
-	f.StringVar(&runtime, "runtime", "", "рантайм")
+	// Значения — ровно те, что принимает сервер (tatnet_shared.schemas.apps
+	// APP_TYPES/RUNTIME_TYPES). До 23.09 справка предлагала static и ssr, которых
+	// сервер не знает: клиент шёл по справке и получал 500 (теперь 422).
+	f.StringVar(&appType, "type", "", "тип: frontend (статика и SSR — по фреймворку), backend или function")
+	f.StringVar(&runtime, "runtime", "", "среда: firecracker (по умолчанию) или vm")
 	f.StringVar(&framework, "framework", "", "фреймворк")
-	f.StringVar(&sourceType, "source-type", "", "источник: git или docker_image")
+	f.StringVar(&sourceType, "source-type", "", "источник: git или docker_image (папку загружает tatnet deploy)")
 	f.StringVar(&repo, "repo", "", "репозиторий вида owner/name")
 	f.StringVar(&branch, "branch", "", "ветка")
 	f.StringVar(&provider, "git-provider", "", "провайдер: github, gitlab, gitea, gitverse, gitflic")
