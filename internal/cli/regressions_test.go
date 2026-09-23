@@ -142,3 +142,24 @@ func TestUnknownAuthorityNamesTheCause(t *testing.T) {
 		})
 	}
 }
+
+// Справка `app create` обязана предлагать только то, что принимает сервер.
+//
+// До 23.09 она говорила «тип: static, ssr, backend»; сервер знает frontend,
+// backend и function, и `--type static` из справки получал 500.
+func TestAppCreateHelpListsServerValues(t *testing.T) {
+	out, _, err := runArgs(t, "app", "create", "--help")
+	if err != nil {
+		t.Fatalf("справка: %v", err)
+	}
+	for _, want := range []string{"frontend", "backend", "function", "firecracker", "vm"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("в справке нет %q:\n%s", want, out)
+		}
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "--type") && (strings.Contains(line, "static,") || strings.Contains(line, "ssr")) {
+			t.Errorf("справка --type снова предлагает значения, которых сервер не знает: %s", line)
+		}
+	}
+}
