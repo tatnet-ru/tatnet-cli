@@ -35,6 +35,9 @@ func (f *fakeAPI) handler() http.Handler {
 		case r.URL.Path == "/account":
 			writeJSON(w, map[string]any{"account_id": "acc-1", "key_id": "key-1",
 				"policy": []any{map[string]any{"effect": "allow", "actions": []any{"*"}, "resources": []any{"*"}}}})
+		case r.URL.Path == "/account/balance":
+			writeJSON(w, map[string]any{"currency": "RUB", "balance": "0", "credits": "300",
+				"credits_unlocked": false, "available": "0", "real_topup_min": "100"})
 		case r.URL.Path == "/projects":
 			writeJSON(w, page([]any{
 				map[string]any{"id": "11111111-1111-1111-1111-111111111111", "name": "прод"},
@@ -147,6 +150,36 @@ func TestE2EAccount(t *testing.T) {
 	}
 	if !strings.Contains(out, "acc-1") {
 		t.Fatalf("аккаунт не выведен: %q", out)
+	}
+}
+
+// Бонусы ещё не открыты: команда обязана сказать, сколько пополнить, а не
+// показать «доступно 0» без объяснения.
+func TestE2EAccountBalance(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	out, _, err := run(t, srv, "account", "balance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"доступно", "бонусы", "300", "нет", "пополнить, чтобы открыть бонусы", "100"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("нет %q в выводе:\n%s", want, out)
+		}
+	}
+	if got := api.requests[len(api.requests)-1]; got != "GET /account/balance?" {
+		t.Fatalf("запрос: %q", got)
+	}
+
+	out, _, err = run(t, srv, "account", "balance", "-o", "json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v map[string]any
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v["available"] != "0" {
+		t.Fatalf("json: %v %q", err, out)
 	}
 }
 
