@@ -7,7 +7,7 @@ import (
 )
 
 func newAccountCommand(env *Env) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:         "account",
 		Short:       "Аккаунт, которому принадлежит ключ",
 		Annotations: ops("account_whoami"),
@@ -21,6 +21,47 @@ func newAccountCommand(env *Env) *cobra.Command {
 				output.Col("аккаунт", "account_id"),
 				output.Col("ключ", "key_id"),
 			})
+		},
+	}
+	cmd.AddCommand(newAccountBalanceCommand(env))
+	return cmd
+}
+
+func newAccountBalanceCommand(env *Env) *cobra.Command {
+	return &cobra.Command{
+		Use:   "balance",
+		Short: "Баланс аккаунта",
+		Long: `Баланс аккаунта, которому принадлежит ключ.
+
+«доступно» — на что можно купить платные ресурсы прямо сейчас: деньги
+плюс бонусы, если они уже открыты. Бонусы идут в оплату только после
+первого реального пополнения — пока его не было, команда покажет, сколько
+пополнить.
+
+Нужно действие billing:read: оно есть только у ключа владельца аккаунта.
+Оплатить или пополнить счёт ключом нельзя — это делается в панели.`,
+		Annotations: ops("account_get_balance"),
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c, err := env.Client()
+			if err != nil {
+				return err
+			}
+			v, err := call(c.AccountGetBalanceWithResponse(cmd.Context()))
+			if err != nil {
+				return err
+			}
+			cols := []output.Column{
+				output.Col("доступно", "available"),
+				output.Col("баланс", "balance"),
+				output.Col("бонусы", "credits"),
+				output.Col("бонусы в оплату", "credits_unlocked"),
+				output.Col("валюта", "currency"),
+			}
+			if !output.Bool(v, "credits_unlocked") {
+				cols = append(cols, output.Col("пополнить, чтобы открыть бонусы", "real_topup_min"))
+			}
+			return env.Printer.Object(v, cols)
 		},
 	}
 }

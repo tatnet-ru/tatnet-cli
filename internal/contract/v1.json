@@ -5449,6 +5449,50 @@
         "title": "V1BackupCreate",
         "type": "object"
       },
+      "V1Balance": {
+        "properties": {
+          "available": {
+            "description": "What paid resources can be bought with right now: `balance`, plus `credits` when they are unlocked",
+            "title": "Available",
+            "type": "string"
+          },
+          "balance": {
+            "description": "Money paid in and not yet spent. A decimal string, not a float; negative means debt",
+            "title": "Balance",
+            "type": "string"
+          },
+          "credits": {
+            "description": "Bonus balance (promo codes, referral grants)",
+            "title": "Credits",
+            "type": "string"
+          },
+          "credits_unlocked": {
+            "description": "Bonuses count towards payment only after the account's first real top-up; false means `credits` cannot be spent yet",
+            "title": "Credits Unlocked",
+            "type": "boolean"
+          },
+          "currency": {
+            "description": "ISO 4217 code; the account is billed in RUB",
+            "title": "Currency",
+            "type": "string"
+          },
+          "real_topup_min": {
+            "description": "Smallest real top-up that unlocks the bonus balance; \"0\" once it is unlocked",
+            "title": "Real Topup Min",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "balance",
+          "credits",
+          "credits_unlocked",
+          "available",
+          "real_topup_min"
+        ],
+        "title": "V1Balance",
+        "type": "object"
+      },
       "V1Bucket": {
         "properties": {
           "created_at": {
@@ -9833,6 +9877,33 @@
           }
         ],
         "summary": "Identify the calling API key",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/account/balance": {
+      "get": {
+        "description": "The balance of the account the key belongs to, as the billing service sees it at the moment of the request. Requires `billing:read`, which is governed by `account:view_billing` — held by the account owner only. `503 billing_unavailable` means the balance could not be read; it is never reported as zero.",
+        "operationId": "account_get_balance",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Balance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Read the account balance",
         "tags": [
           "account"
         ]
