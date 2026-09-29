@@ -231,12 +231,19 @@ func appCreateCommand(env *Env) *cobra.Command {
 
 func appUpdateCommand(env *Env) *cobra.Command {
 	var (
-		name, predeploy, readiness, vpc string
-		replicas, vcpu, memory          int
+		name, predeploy, readiness, vpc, image string
+		replicas, vcpu, memory                 int
 	)
 	cmd := &cobra.Command{
-		Use:         "update <приложение>",
-		Short:       "Изменить приложение",
+		Use:   "update <приложение>",
+		Short: "Изменить приложение",
+		Long: `Изменить приложение: имя, реплики, ресурсы, сеть, проверку готовности.
+
+--image меняет образ у приложения из Docker-образа (у приложений из git и
+из папки — отказ). Новый образ соберётся при следующем деплое:
+
+  tatnet app update web --image ghcr.io/org/web:<sha>
+  tatnet app deploy web`,
 		Annotations: ops("apps_update_app_route"),
 		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -249,6 +256,7 @@ func appUpdateCommand(env *Env) *cobra.Command {
 				PredeployCommand: optStr(cmd, "predeploy-command", predeploy),
 				ReadinessPath:    optStr(cmd, "readiness-path", readiness),
 				VpcId:            optStr(cmd, "vpc", vpc),
+				DockerImage:      optStr(cmd, "image", image),
 				ReplicaCount:     optInt(cmd, "replicas", replicas),
 				ReplicaVcpu:      optInt(cmd, "vcpu", vcpu),
 				ReplicaMemoryMb:  optInt(cmd, "memory", memory),
@@ -264,6 +272,7 @@ func appUpdateCommand(env *Env) *cobra.Command {
 	f.StringVar(&predeploy, "predeploy-command", "", "команда до выката")
 	f.StringVar(&readiness, "readiness-path", "", "путь проверки готовности")
 	f.StringVar(&vpc, "vpc", "", "id приватной сети")
+	f.StringVar(&image, "image", "", "новый Docker-образ (только у приложений из образа)")
 	f.IntVar(&replicas, "replicas", 0, "число реплик")
 	f.IntVar(&vcpu, "vcpu", 0, "vCPU на реплику")
 	f.IntVar(&memory, "memory", 0, "память на реплику, МБ")
