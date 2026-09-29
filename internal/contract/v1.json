@@ -5255,6 +5255,18 @@
       "V1AppUpdate": {
         "additionalProperties": false,
         "properties": {
+          "docker_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Image of an app whose source_type is docker_image, e.g. ghcr.io/org/app:<sha>. Takes effect on the next deploy; 422 on other source types. null is ignored.",
+            "title": "Docker Image"
+          },
           "name": {
             "anyOf": [
               {
@@ -10123,7 +10135,7 @@
             "TatNetAPIKey": []
           }
         ],
-        "summary": "Update an app (scale / resources)",
+        "summary": "Update an app (scale / resources / image)",
         "tags": [
           "apps"
         ]
@@ -16639,7 +16651,7 @@
         ]
       },
       "patch": {
-        "description": "Scale (replica_count) and resize (replica_vcpu / replica_memory_mb) an\napp. Billing/plan gates are shared with the panel route; a resource change\ncreates a resource-only revision so app-deployer rolls running replicas to\nthe new size right away.",
+        "description": "Scale (replica_count) and resize (replica_vcpu / replica_memory_mb) an\napp, or point a Docker-image app at a new image (docker_image). Billing/plan\ngates are shared with the panel route; a resource change creates a\nresource-only revision so app-deployer rolls running replicas to the new\nsize right away. A new image is built on the next deploy.",
         "operationId": "apps_update_app_route",
         "parameters": [
           {
@@ -16698,7 +16710,7 @@
             "TatNetAPIKey": []
           }
         ],
-        "summary": "Update an app (scale / resources)",
+        "summary": "Update an app (scale / resources / image)",
         "tags": [
           "apps"
         ]

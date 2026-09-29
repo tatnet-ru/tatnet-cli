@@ -62,6 +62,13 @@ func (f *fakeAPI) handler() http.Handler {
 				apps = only
 			}
 			writeJSON(w, page(apps, 0, 100))
+		case r.URL.Path == "/projects/11111111-1111-1111-1111-111111111111/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" && r.Method == http.MethodPatch:
+			var body map[string]any
+			json.NewDecoder(r.Body).Decode(&body)
+			f.lastBody = body
+			writeJSON(w, map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "name": "web",
+				"project_id": "11111111-1111-1111-1111-111111111111", "status": "active",
+				"source_type": "docker_image", "docker_image": body["docker_image"], "repo_full_name": body["docker_image"]})
 		case r.URL.Path == "/apps/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" && r.Method == http.MethodGet:
 			writeJSON(w, map[string]any{"id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "name": "web",
 				"project_id": "11111111-1111-1111-1111-111111111111", "status": "active"})
@@ -512,5 +519,25 @@ func TestE2EValkeyPlan(t *testing.T) {
 	}
 	if api.lastBody["plan_id"] != "vk1.2g" {
 		t.Fatalf("в теле не тот тариф: %v", api.lastBody)
+	}
+}
+
+// --image уходит в PATCH полем docker_image и только им: остальные поля
+// обновления не прислали — сервер их не тронет.
+func TestE2EAppUpdateImage(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+
+	img := "ghcr.io/org/web:0123abc"
+	out, _, err := run(t, srv, "app", "update", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "--image", img)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(api.lastBody) != 1 || api.lastBody["docker_image"] != img {
+		t.Fatalf("тело PATCH: %v", api.lastBody)
+	}
+	if !strings.Contains(out, img) {
+		t.Fatalf("новый образ не выведен:\n%s", out)
 	}
 }
