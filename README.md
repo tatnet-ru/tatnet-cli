@@ -327,3 +327,26 @@ tatnet vpc delete private --yes
 Сеть выбирается по UUID или точному имени; при одинаковых именах нужно
 указать UUID. Плавающий IP можно выбрать по UUID, имени или адресу.
 Эти ресурсы принадлежат аккаунту и не требуют `--project`.
+
+## Инференс
+
+`tatnet ai` обращается к общему API `https://ai.tatnet.cloud/v1`.
+Ключ инференса `tnai_live_…` отличается от ключа управления облаком:
+задайте `TATNET_INFERENCE_API_KEY` или `--inference-key`.
+Вывод этих команд — JSON ответа шлюза; тарифы и проверки не копируются в CLI.
+
+```sh
+tatnet ai models --kind image
+tatnet ai quote --kind image --body @image-request.json
+tatnet ai generate --kind image --body @image-request.json
+tatnet ai job img_... --kind image
+tatnet ai models --kind video
+tatnet ai quote --kind video --body @video-request.json
+tatnet ai generate --kind video --body @video-request.json
+tatnet ai job vid_... --kind video
+tatnet ai generate --kind chat --body @chat-request.json
+```
+
+`generate` запускает оплачиваемую операцию. Сначала `quote` позволяет
+проверить цену изображения/видео. Создание задачи не повторяется при
+редиректе или ошибке сети. `job` возвращает состояние и готовые ссылки.

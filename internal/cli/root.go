@@ -72,6 +72,7 @@ func NewRootCommand(version string) *cobra.Command {
 	f.BoolVar(&g.debug, "debug", false, "печатать запросы и ответы в stderr (ключ вырезается)")
 
 	root.AddCommand(
+		newAICommand(&g),
 		newAuthCommand(env),
 		newProfileCommand(env),
 		newAccountCommand(env),
