@@ -6,7 +6,7 @@
 
 `tatnet` управляет облаком [TatNet](https://tatnet.ru) из терминала:
 виртуальные машины, приложения, базы Postgres и Valkey, DNS, объектное
-хранилище, SSH-ключи.
+хранилище, SSH-ключи, VPC, NAT и плавающие IP.
 
 Построен поверх [tatnet-go](https://github.com/tatnet-ru/tatnet-go) —
 клиента, генерируемого из контракта `/v1`. Рукописного HTTP здесь нет, и
@@ -106,7 +106,7 @@ tatnet vm get web-1                       # по имени или hostname, н�
 tatnet vm stop web-1
 tatnet vm backup create web-1 --name до-обновления
 
-tatnet app list                           # все приложения аккаунта, без -p
+tatnet app list --all-projects            # все доступные проекты аккаунта
 tatnet app get магазин                    # проект не нужен — узнаётся из приложения
 tatnet app deploy магазин
 tatnet app env set магазин DATABASE_URL 'postgres://…' --secret
@@ -206,9 +206,8 @@ tatnet --profile стенд vm list
 
 ## `tatnet api` — всё остальное
 
-Своими командами выведены 91 операция из 161. Остальные — балансировщики,
-сети, Kubernetes, функции, тома, домены, сертификаты — доступны прямым
-вызовом:
+Для разделов без отдельных команд — балансировщиков, Kubernetes,
+функций, томов, доменов и сертификатов — доступен прямой вызов API:
 
 ```bash
 tatnet api --list load-balancers          # что вообще есть
@@ -267,3 +266,49 @@ go run ./cmd/tatnet --help
 ## Лицензия
 
 [Apache-2.0](LICENSE).
+
+## Поиск приложений и проверка выката
+
+`app list` использует проект из `--project`, `$TATNET_PROJECT` или профиля.
+В табличном выводе CLI показывает этот охват и его источник в stderr.
+`--all-projects` игнорирует проект профиля и окружения и перечисляет все
+проекты, доступные ключу; одновременно задавать `--project` нельзя.
+Фильтры сопоставляют точные значения, `--limit` ограничивает число совпадений.
+
+```bash
+tatnet app list --all-projects --repo manzhikov/tatnet-frontend --branch main
+tatnet app list --all-projects --domain min.tatnet.ru
+tatnet app deploy web --commit <полный-SHA> --wait --logs
+tatnet app wait web --commit <полный-SHA> --deadline 30m
+tatnet app wait web --build <build-id>
+```
+
+Ожидание закрепляет конкретную сборку и подтверждает `status=success` вместе
+с `deploy_state=live`. Сборка другого коммита не удовлетворяет ожидание.
+Ошибки сборки/запуска и истечение срока дают ненулевой код выхода; при
+ошибке CLI пытается прочитать лог. `--logs` включает ожидание в `app deploy`.
+`tatnet deploy` из папки также ждёт `live`; `--no-wait` только ставит сборку
+в очередь. Строки логов и сведения об охвате идут в stderr, JSON остаётся
+пригодным для обработки скриптами.
+
+## Сети аккаунта
+
+```bash
+tatnet vpc list --cluster <region-id>
+tatnet vpc create --name private --cluster <region-id> --subnet 10.20.0.0/24
+tatnet vpc get private
+tatnet vpc nat enable private                 # выделяет новый публичный IP
+tatnet vpc nat enable private --floating-ip <fip-id>
+tatnet vpc reserved-ip create private --name fixed --address 10.20.0.5 --mac 02:00:00:00:00:01
+tatnet vpc reserved-ip delete private <reservation-id> --yes
+tatnet floating-ip create --cluster <region-id> --name public
+tatnet floating-ip attach public --interface <vm-interface-id>
+tatnet floating-ip detach public --yes
+tatnet floating-ip delete public --yes
+tatnet vpc nat disable private --yes
+tatnet vpc delete private --yes
+```
+
+Сеть выбирается по UUID или точному имени; при одинаковых именах нужно
+указать UUID. Плавающий IP можно выбрать по UUID, имени или адресу.
+Эти ресурсы принадлежат аккаунту и не требуют `--project`.

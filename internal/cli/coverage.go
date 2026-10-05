@@ -10,7 +10,6 @@ package cli
 // убрать раздел.
 var deferredTags = map[string]string{
 	"load-balancers": "27 операций: слушатели, целевые группы, правила, сертификаты",
-	"networking":     "VPC, плавающие адреса, NAT-шлюз, зарезервированные адреса",
 	"kubernetes":     "кластеры, пулы узлов, kubeconfig, обновление",
 	"functions":      "serverless-функции и их переменные",
 	"volumes":        "сетевые диски",

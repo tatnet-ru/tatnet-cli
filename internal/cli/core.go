@@ -24,9 +24,10 @@ type Env struct {
 	ProfileName string
 	Profile     config.Profile
 
-	APIKey  string
-	BaseURL string
-	Project string
+	APIKey        string
+	BaseURL       string
+	Project       string
+	ProjectSource string
 
 	Timeout time.Duration
 	Debug   bool

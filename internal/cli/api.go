@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -32,7 +33,7 @@ func newAPICommand(env *Env) *cobra.Command {
 		Short: "Прямой вызов любой операции /v1",
 		Long: "Вызывает произвольный адрес публичного API с ключом текущего профиля.\n\n" +
 			"Через эту команду доступны ВСЕ операции контракта, включая те, для\n" +
-			"которых своей команды ещё нет: балансировщики, сети, Kubernetes,\n" +
+			"которых своей команды ещё нет: балансировщики, Kubernetes,\n" +
 			"функции, тома.\n\n" +
 			"Адрес проверяется по вшитому контракту ДО отправки: опечатка в пути\n" +
 			"иначе вернула бы 404, неотличимый от «ресурса нет».\n\n" +
@@ -55,6 +56,11 @@ func newAPICommand(env *Env) *cobra.Command {
 			}
 
 			path := normalizePath(args[0])
+			parsed, err := url.ParseRequestURI(path)
+			if err != nil {
+				return fmt.Errorf("неверный путь: %w", err)
+			}
+			contractPath := strings.TrimSuffix(parsed.Path, "/")
 			body, err := buildBody(cmd, fields, rawFields, input)
 			if err != nil {
 				return err
@@ -64,12 +70,12 @@ func newAPICommand(env *Env) *cobra.Command {
 			}
 			method = strings.ToUpper(method)
 
-			if op, ok := contract.Find(method, path); ok {
+			if op, ok := contract.Find(method, contractPath); ok {
 				if env.Debug {
 					fmt.Fprintf(cmd.ErrOrStderr(), "операция: %s (%s)\n", op.ID, op.Summary)
 				}
 			} else if !allowUnkn {
-				return unknownPathError(method, path)
+				return unknownPathError(method, contractPath)
 			}
 
 			status, respHeaders, respBody, err := env.rawRequest(cmd, method, path, body, headers)

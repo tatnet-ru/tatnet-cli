@@ -310,62 +310,10 @@ func humanBytes(n int64) string {
 	return fmt.Sprintf("%.1f %cиБ", float64(n)/float64(div), []rune("КМГТ")[exp])
 }
 
-// awaitBuild ждёт окончания сборки, при --logs печатая её лог.
+// awaitBuild confirms the artifact is serving, not just successfully built.
 func (e *Env) awaitBuild(cmd *cobra.Command, c *tatnet.ClientWithResponses, project, appID, buildID string, showLogs bool) error {
-	errOut := cmd.ErrOrStderr()
-	shown := 0
-	if showLogs {
-		n, err := e.streamBuildLog(cmd, c, project, appID, buildID, 0)
-		shown = n
-		if err != nil {
-			fmt.Fprintf(errOut, "предупреждение: лог сборки прервался: %v\n", err)
-		}
-	} else {
-		fmt.Fprintln(errOut, "Идёт сборка... (лог: --logs)")
-	}
-
-	// Статус спрашивается у API и ПОСЛЕ лога: конец потока логов означает
-	// «лог кончился», а не «сборка удалась». Это разные вопросы.
-	deadline := time.Now().Add(30 * time.Minute)
-	for time.Now().Before(deadline) {
-		status, errText, err := e.buildStatus(cmd.Context(), c, project, appID, buildID)
-		if err != nil {
-			return err
-		}
-		switch status {
-		case "success":
-			e.printMissedLog(cmd, c, project, appID, buildID, showLogs, shown)
-			fmt.Fprintln(errOut, "Сборка прошла")
-			return nil
-		case "error", "failed", "cancelled":
-			e.printMissedLog(cmd, c, project, appID, buildID, showLogs, shown)
-			if errText != "" {
-				return fmt.Errorf("сборка не прошла: %s", errText)
-			}
-			return fmt.Errorf("сборка не прошла (%s)", status)
-		}
-		select {
-		case <-cmd.Context().Done():
-			return cmd.Context().Err()
-		case <-time.After(2 * time.Second):
-		}
-	}
-	return fmt.Errorf("сборка не завершилась за 30 минут; проверьте: tatnet app build list --app %s", appID)
-}
-
-func (e *Env) buildStatus(ctx context.Context, c *tatnet.ClientWithResponses, project, appID, buildID string) (string, string, error) {
-	limit := 20
-	v, err := call(c.AppsListBuildsWithResponse(ctx, project, appID, &tatnet.AppsListBuildsParams{Limit: &limit}))
-	if err != nil {
-		return "", "", err
-	}
-	for _, item := range items(v) {
-		if output.Value(item, "id") == buildID {
-			return output.Value(item, "status"), output.Value(item, "error"), nil
-		}
-	}
-	// Сборки ещё нет в списке — она только что заведена.
-	return "queued", "", nil
+	_, err := e.waitLive(cmd, c, project, appID, buildID, "", 30*time.Minute, showLogs)
+	return err
 }
 
 // printMissedLog дочитывает лог ПОСЛЕ окончания сборки.
