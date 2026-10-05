@@ -12,6 +12,21 @@
 клиента, генерируемого из контракта `/v1`. Рукописного HTTP здесь нет, и
 контракт — тот же самый документ, что публикует API.
 
+## Quick start / English
+
+TatNet CLI deploys static and SSR websites and manages apps, virtual machines,
+Postgres and Valkey databases, DNS, S3 and networking on TatNet, a Russian cloud.
+Install with `npm install -g tatnet@latest`, create a scoped API key in the
+[TatNet dashboard](https://min.tatnet.ru/api-keys), then run `tatnet auth login`.
+For a first upload, choose a project with `tatnet profile set-project <project>`
+and run `tatnet deploy --logs` from your website directory. The command waits
+for `live`, printing the URL to stdout and logs to stderr.
+
+- [CLI overview](https://tatnet.ru/cli) and [installation docs](https://docs.tatnet.ru/docs/cli/intro).
+- [Deploy from CI](https://docs.tatnet.ru/docs/guides/en/cli-ci-deploy).
+- [Diagnose a build](https://docs.tatnet.ru/docs/guides/en/debug-build).
+- [Publish from Claude Code using MCP](https://docs.tatnet.ru/docs/guides/en/claude-code-deploy).
+
 ## Установка
 
 Без установки вообще — если есть Node:
@@ -24,11 +39,11 @@ npx tatnet vm list
 
 ```bash
 npm i -g tatnet
+```
 
 Какая версия стоит — `tatnet --version` (печатает версию, коммит и дату
 сборки). Обновить: `npm i -g tatnet@latest`; новая версия появляется в npm
 через несколько минут после выпуска в GitHub Releases.
-```
 
 Бинарник качается не при установке, а приезжает готовым подпакетом на вашу
 платформу (`@tatnet/cli-<os>-<arch>` в `optionalDependencies` с полями
