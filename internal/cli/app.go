@@ -2,7 +2,9 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
@@ -34,6 +36,7 @@ func newAppCommand(env *Env) *cobra.Command {
 		appUpdateCommand(env),
 		appDeleteCommand(env),
 		appDeployCommand(env),
+		appWaitCommand(env),
 		appBuildCommand(env),
 		appEnvCommand(env),
 		appDomainCommand(env),
@@ -95,24 +98,59 @@ func (e *Env) appTarget(ctx context.Context, ref string) (*tatnet.ClientWithResp
 
 func appListCommand(env *Env) *cobra.Command {
 	var limit int
+	var allProjects bool
+	var repo, branch, name, domain string
 	cmd := &cobra.Command{
 		Use:         "list",
 		Short:       "Приложения аккаунта (или проекта, если он задан)",
 		Annotations: ops("apps_list_apps_by_account"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := env.optionalProject(cmd.Context())
+			if allProjects && cmd.Flags().Changed("project") {
+				return fmt.Errorf("--all-projects несовместим с --project")
+			}
+			project := ""
+			var err error
+			if !allProjects {
+				project, err = env.optionalProject(cmd.Context())
+			}
 			if err != nil {
 				return err
 			}
-			all, err := env.listApps(cmd.Context(), project, limit)
+			if env.Printer.Format == output.Table || env.Printer.Format == output.Wide {
+				if project == "" {
+					fmt.Fprintln(cmd.ErrOrStderr(), "Охват: все доступные проекты аккаунта")
+				} else {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Охват: проект %s (источник: %s)\n", project, env.ProjectSource)
+				}
+			}
+			if limit < 0 {
+				return fmt.Errorf("--limit должен быть >= 0")
+			}
+			fetchLimit := 0
+			if repo == "" && branch == "" && name == "" && domain == "" {
+				fetchLimit = limit
+			}
+			all, err := env.listApps(cmd.Context(), project, fetchLimit)
 			if err != nil {
 				return err
+			}
+			all, err = env.filterApps(cmd.Context(), all, repo, branch, name, domain)
+			if err != nil {
+				return err
+			}
+			if limit > 0 && len(all) > limit {
+				all = all[:limit]
 			}
 			return env.Printer.List(all, appColumns)
 		},
 	}
-	cmd.Flags().IntVar(&limit, "limit", 0, "не больше стольких записей (0 — все)")
+	cmd.Flags().BoolVar(&allProjects, "all-projects", false, "все доступные проекты, игнорируя проект в профиле и окружении")
+	cmd.Flags().StringVar(&repo, "repo", "", "точное имя репозитория owner/name")
+	cmd.Flags().StringVar(&branch, "branch", "", "точное имя ветки")
+	cmd.Flags().StringVar(&name, "name", "", "точное имя приложения")
+	cmd.Flags().StringVar(&domain, "domain", "", "точное доменное имя приложения")
+	cmd.Flags().IntVar(&limit, "limit", 0, "не больше стольких совпадений (0 — все)")
 	return cmd
 }
 
@@ -306,6 +344,7 @@ func appDeleteCommand(env *Env) *cobra.Command {
 
 func appDeployCommand(env *Env) *cobra.Command {
 	var commit string
+	var wait, logs bool
 	cmd := &cobra.Command{
 		Use:         "deploy <приложение>",
 		Short:       "Запустить сборку и выкат",
@@ -322,7 +361,14 @@ func appDeployCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if wait || logs {
+				v, err = env.waitLive(cmd, c, project, id, output.Value(v, "id"), "", 30*time.Minute, logs)
+				if err != nil {
+					return err
+				}
+			}
 			return env.Printer.Object(v, []output.Column{
+				output.Col("деплой", "deploy_state"),
 				output.Col("сборка", "id"),
 				output.Col("статус", "status"),
 				output.Col("приложение", "app_id"),
@@ -331,6 +377,8 @@ func appDeployCommand(env *Env) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&commit, "commit", "", "конкретный коммит")
+	cmd.Flags().BoolVar(&wait, "wait", false, "ждать live (до 30 минут)")
+	cmd.Flags().BoolVar(&logs, "logs", false, "печатать лог сборки; включает --wait")
 	return cmd
 }
 

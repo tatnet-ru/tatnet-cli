@@ -83,6 +83,8 @@ func NewRootCommand(version string) *cobra.Command {
 		newPGCommand(env),
 		newValkeyCommand(env),
 		newSSHKeyCommand(env),
+		newVPCCommand(env),
+		newFloatingIPCommand(env),
 		newAPICommand(env),
 		newDeployCommand(env),
 	)
@@ -152,6 +154,13 @@ func setup(cmd *cobra.Command, env *Env, g *globalFlags) error {
 	env.APIKey = first(g.apiKey, os.Getenv("TATNET_API_KEY"), profile.APIKey)
 	env.BaseURL = first(g.baseURL, os.Getenv("TATNET_BASE_URL"), profile.BaseURL, tatnet.DefaultBaseURL)
 	env.Project = first(g.project, os.Getenv("TATNET_PROJECT"), profile.Project)
+	env.ProjectSource = "профиль " + name
+	if strings.TrimSpace(os.Getenv("TATNET_PROJECT")) != "" {
+		env.ProjectSource = "$TATNET_PROJECT"
+	}
+	if cmd.Flags().Changed("project") {
+		env.ProjectSource = "--project"
+	}
 	env.Timeout = g.timeout
 	env.Debug = g.debug
 	env.Printer = output.Printer{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), Format: format}

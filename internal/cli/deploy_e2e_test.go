@@ -89,7 +89,7 @@ func (f *deployAPI) handler() http.Handler {
 		case strings.HasSuffix(p, "/builds") && r.Method == http.MethodGet:
 			writeJSON(w, page([]any{map[string]any{
 				"id": testBuildID, "app_id": testAppID,
-				"status": f.buildStatus, "error": f.buildErrText,
+				"status": f.buildStatus, "error": f.buildErrText, "deploy_state": "live",
 			}}, 0, 20))
 
 		case strings.HasSuffix(p, "/logs") && r.Method == http.MethodGet:
