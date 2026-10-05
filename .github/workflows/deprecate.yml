@@ -28,9 +28,9 @@ permissions:
 
 jobs:
   deprecate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           registry-url: https://registry.npmjs.org
