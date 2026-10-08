@@ -336,6 +336,7 @@ tatnet vpc delete private --yes
 Вывод этих команд — JSON ответа шлюза; тарифы и проверки не копируются в CLI.
 
 ```sh
+tatnet ai models --kind chat  # публичный каталог, без ключа и расходов
 tatnet ai models --kind image
 tatnet ai quote --kind image --body @image-request.json
 tatnet ai generate --kind image --body @image-request.json

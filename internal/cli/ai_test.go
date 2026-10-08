@@ -45,3 +45,29 @@ func TestAIPaidSubmitDoesNotFollowRedirect(t *testing.T) {
 		t.Fatal(calls)
 	}
 }
+
+func TestAIChatCatalogIsPublic(t *testing.T) {
+	for _, kind := range []string{"chat", "text"} {
+		t.Run(kind, func(t *testing.T) {
+			t.Setenv("TATNET_INFERENCE_API_KEY", "")
+			calls := 0
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if r.URL.Path != "/v1/models" || r.Header.Get("Authorization") != "" || r.Method != "GET" {
+					t.Errorf("wrong request: %s %s", r.Method, r.URL)
+				}
+				w.Write([]byte(`{"data":[{"id":"glm-5.2"}]}`))
+			}))
+			defer s.Close()
+			root := NewRootCommand("test")
+			root.SetOut(&bytes.Buffer{})
+			root.SetArgs([]string{"ai", "models", "--kind", kind, "--inference-base-url", s.URL + "/v1"})
+			if err := root.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			if calls != 1 {
+				t.Fatal(calls)
+			}
+		})
+	}
+}
