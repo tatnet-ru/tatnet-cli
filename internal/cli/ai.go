@@ -55,7 +55,7 @@ func newAICommand(g *globalFlags) *cobra.Command {
 	}
 	pathFor := func(operation string) (string, error) {
 		switch kind {
-		case "chat":
+		case "chat", "text":
 			if operation == "models" {
 				return "/models", nil
 			}
@@ -88,7 +88,7 @@ func newAICommand(g *globalFlags) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return call(cmd, "GET", path, nil, kind == "chat")
+		return call(cmd, "GET", path, nil, false)
 	}}
 	ai.AddCommand(models)
 	for _, operation := range []string{"quote", "generate"} {
