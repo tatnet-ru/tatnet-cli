@@ -38,6 +38,21 @@ func TestKafkaCreateUsesProjectAndPreservesHAAndVPC(t *testing.T) {
 	}
 }
 
+func TestKafkaResumeUsesAuthenticatedProjectRouteAndPreservesBillingError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/projects/11111111-1111-1111-1111-111111111111/kafka-clusters/k/resume" || r.Header.Get("Authorization") == "" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		w.WriteHeader(402)
+		writeJSON(w, map[string]any{"detail": map[string]any{"code": "insufficient_balance", "shortfall": 12}})
+	}))
+	defer srv.Close()
+	_, _, err := run(t, srv, "--project", "11111111-1111-1111-1111-111111111111", "kafka", "resume", "k")
+	if err == nil || !strings.Contains(err.Error(), "insufficient_balance") {
+		t.Fatalf("billing failure lost: %v", err)
+	}
+}
+
 func TestRRsetDeleteRequiresRevisionAndSendsItToAPI(t *testing.T) {
 	revision := strings.Repeat("a", 64)
 	called := 0

@@ -98,6 +98,13 @@ func newKafkaCommand(env *Env) *cobra.Command {
 	}}
 	access.Flags().StringSliceVar(&cidrs, "allow", []string{}, "IPv4 CIDR; пусто — закрыть публичный доступ")
 	root.AddCommand(access)
+	root.AddCommand(&cobra.Command{Use: "resume <id>", Short: "Возобновить Kafka: оплатить час остановленных подписок и запустить узлы", Args: cobra.ExactArgs(1), Annotations: ops("kafka_resume_cluster"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		return request(cmd, http.MethodPost, p+"/resume", nil)
+	}})
 	var power string
 	canary := &cobra.Command{Use: "canary-power <cluster-id> <node-id>", Short: "Закрытый canary: start/stop узла; оплата продолжается", Args: cobra.ExactArgs(2), Annotations: ops("kafka_canary_node_action"), RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := path(cmd, args[0])

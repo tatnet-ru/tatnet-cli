@@ -1007,12 +1007,33 @@
             "title": "Controller Plans",
             "type": "array"
           },
+          "forecast_hours": {
+            "default": 730,
+            "title": "Forecast Hours",
+            "type": "integer"
+          },
+          "management_percent": {
+            "default": 30,
+            "title": "Management Percent",
+            "type": "number"
+          },
           "plans": {
             "items": {
               "$ref": "#/components/schemas/KafkaPlanResponse"
             },
             "title": "Plans",
             "type": "array"
+          },
+          "public_ip_price_per_hour": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Ip Price Per Hour"
           },
           "public_ip_price_per_month": {
             "title": "Public Ip Price Per Month",
@@ -1078,6 +1099,17 @@
             ],
             "title": "Controller Plan Id"
           },
+          "hourly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Cost"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1093,6 +1125,17 @@
           "kafka_version": {
             "title": "Kafka Version",
             "type": "string"
+          },
+          "management_hourly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Management Hourly Cost"
           },
           "monthly_cost": {
             "anyOf": [
@@ -1252,6 +1295,17 @@
             ],
             "title": "Controller Plan Id"
           },
+          "hourly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Cost"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1267,6 +1321,17 @@
           "kafka_version": {
             "title": "Kafka Version",
             "type": "string"
+          },
+          "management_hourly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Management Hourly Cost"
           },
           "monthly_cost": {
             "anyOf": [
@@ -1486,6 +1551,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "price_per_hour": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Hour"
           },
           "price_per_month": {
             "anyOf": [
@@ -20446,6 +20522,64 @@
           }
         ],
         "summary": "Closed canary node power verification; billing continues",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/resume": {
+      "post": {
+        "operationId": "kafka_resume_cluster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaClusterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Resume Kafka after payment; stopped subscriptions charge one hour before starting nodes",
         "tags": [
           "kafka"
         ]
