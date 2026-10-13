@@ -29,7 +29,7 @@ var recordColumns = []output.Column{
 
 func newDNSCommand(env *Env) *cobra.Command {
 	cmd := &cobra.Command{Use: "dns", Short: "DNS-зоны и записи"}
-	cmd.AddCommand(dnsZoneCommand(env), dnsRecordCommand(env))
+	cmd.AddCommand(dnsZoneCommand(env), dnsRecordCommand(env), newDNSRRsetCommand(env))
 	return cmd
 }
 

@@ -110,7 +110,7 @@ func newVPCCommand(e *Env) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id)); err != nil {
+		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id, nil)); err != nil {
 			return err
 		}
 		return e.Printer.Message("NAT выключен.")

@@ -23,7 +23,7 @@ func newAccountCommand(env *Env) *cobra.Command {
 			})
 		},
 	}
-	cmd.AddCommand(newAccountBalanceCommand(env))
+	cmd.AddCommand(newAccountBalanceCommand(env), newAccountFundsCommand(env))
 	return cmd
 }
 

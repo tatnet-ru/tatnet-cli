@@ -415,6 +415,91 @@
         "title": "ChangeValkeyTopologyRequest",
         "type": "object"
       },
+      "CreateKafkaClusterRequest": {
+        "properties": {
+          "cluster_id": {
+            "format": "uuid",
+            "title": "Cluster Id",
+            "type": "string"
+          },
+          "controller_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controller Plan Id"
+          },
+          "ip_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ip Allowlist",
+            "type": "array"
+          },
+          "kafka_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kafka Version"
+          },
+          "name": {
+            "maxLength": 63,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "retention_hours": {
+            "default": 168,
+            "maximum": 8760.0,
+            "minimum": 1.0,
+            "title": "Retention Hours",
+            "type": "integer"
+          },
+          "topology": {
+            "default": "dev",
+            "enum": [
+              "dev",
+              "ha"
+            ],
+            "title": "Topology",
+            "type": "string"
+          },
+          "vpc_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vpc Id"
+          }
+        },
+        "required": [
+          "name",
+          "cluster_id",
+          "plan_id"
+        ],
+        "title": "CreateKafkaClusterRequest",
+        "type": "object"
+      },
       "CreatePgBackupRequest": {
         "properties": {
           "label": {
@@ -605,6 +690,76 @@
         "title": "DeleteAccepted",
         "type": "object"
       },
+      "FundsCheckResponse": {
+        "description": "Решение биллинга «хватает ли денег на действие».\n\nПравило одно на платформу (``libs/credits/eligibility.py``): бонусы идут в\nоплату только после реального пополнения. Вызывающий НЕ пересчитывает —\nберёт ``ok``/``shortfall`` как есть.",
+        "properties": {
+          "available": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Available",
+            "type": "string"
+          },
+          "balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Balance",
+            "type": "string"
+          },
+          "credits": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Credits",
+            "type": "string"
+          },
+          "credits_unlocked": {
+            "title": "Credits Unlocked",
+            "type": "boolean"
+          },
+          "currency": {
+            "default": "RUB",
+            "title": "Currency",
+            "type": "string"
+          },
+          "has_real_topup": {
+            "title": "Has Real Topup",
+            "type": "boolean"
+          },
+          "needs_real_topup": {
+            "title": "Needs Real Topup",
+            "type": "boolean"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "real_topup_min": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Real Topup Min",
+            "type": "string"
+          },
+          "required": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Required",
+            "type": "string"
+          },
+          "shortfall": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Shortfall",
+            "type": "string"
+          }
+        },
+        "required": [
+          "required",
+          "balance",
+          "credits",
+          "available",
+          "ok",
+          "has_real_topup",
+          "credits_unlocked",
+          "needs_real_topup",
+          "shortfall",
+          "real_topup_min"
+        ],
+        "title": "FundsCheckResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -616,6 +771,777 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImageCatalogFamily": {
+        "properties": {
+          "default_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Version"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "os_family": {
+            "title": "Os Family",
+            "type": "string"
+          },
+          "ports": {
+            "items": {},
+            "title": "Ports",
+            "type": "array"
+          },
+          "readme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readme"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/ImageCatalogVersion"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "kind",
+          "os_family"
+        ],
+        "title": "ImageCatalogFamily",
+        "type": "object"
+      },
+      "ImageCatalogVersion": {
+        "description": "Версия семьи в пикере: ``image_id`` — пин (новейшая ready-сборка),\n``by_cluster`` — сборка, разложенная на все активные ноды региона.",
+        "properties": {
+          "by_cluster": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "By Cluster",
+            "type": "object"
+          },
+          "exact_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Version"
+          },
+          "image_id": {
+            "title": "Image Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "image_id"
+        ],
+        "title": "ImageCatalogVersion",
+        "type": "object"
+      },
+      "ImageResponse": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "filename"
+        ],
+        "title": "ImageResponse",
+        "type": "object"
+      },
+      "ImagesListResponse": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/ImageCatalogFamily"
+            },
+            "title": "Families",
+            "type": "array"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageResponse"
+            },
+            "title": "Images",
+            "type": "array"
+          }
+        },
+        "required": [
+          "images"
+        ],
+        "title": "ImagesListResponse",
+        "type": "object"
+      },
+      "KafkaCanaryPowerRequest": {
+        "properties": {
+          "action": {
+            "enum": [
+              "start",
+              "stop"
+            ],
+            "title": "Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "KafkaCanaryPowerRequest",
+        "type": "object"
+      },
+      "KafkaCatalogResponse": {
+        "properties": {
+          "controller_plans": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaPlanResponse"
+            },
+            "title": "Controller Plans",
+            "type": "array"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaPlanResponse"
+            },
+            "title": "Plans",
+            "type": "array"
+          },
+          "public_ip_price_per_month": {
+            "title": "Public Ip Price Per Month",
+            "type": "number"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaRegionResponse"
+            },
+            "title": "Regions",
+            "type": "array"
+          },
+          "topologies": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaTopologyResponse"
+            },
+            "title": "Topologies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "regions",
+          "plans",
+          "controller_plans",
+          "topologies",
+          "public_ip_price_per_month"
+        ],
+        "title": "KafkaCatalogResponse",
+        "type": "object"
+      },
+      "KafkaClusterCreatedResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "ca_pem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ca Pem"
+          },
+          "cluster_id": {
+            "format": "uuid",
+            "title": "Cluster Id",
+            "type": "string"
+          },
+          "controller_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controller Plan Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ip Allowlist",
+            "type": "array"
+          },
+          "kafka_version": {
+            "title": "Kafka Version",
+            "type": "string"
+          },
+          "monthly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Cost"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaNodeResponse"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "private_bootstrap_servers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Private Bootstrap Servers",
+            "type": "array"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "public_bootstrap_servers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Public Bootstrap Servers",
+            "type": "array"
+          },
+          "retention_hours": {
+            "title": "Retention Hours",
+            "type": "integer"
+          },
+          "sasl_mechanism": {
+            "default": "SCRAM-SHA-512",
+            "title": "Sasl Mechanism",
+            "type": "string"
+          },
+          "security_protocol": {
+            "default": "SASL_SSL",
+            "title": "Security Protocol",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Detail"
+          },
+          "topology": {
+            "title": "Topology",
+            "type": "string"
+          },
+          "username": {
+            "default": "customer",
+            "title": "Username",
+            "type": "string"
+          },
+          "vpc_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vpc Id"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "project_id",
+          "name",
+          "cluster_id",
+          "kafka_version",
+          "topology",
+          "plan_id",
+          "controller_plan_id",
+          "vpc_id",
+          "status",
+          "retention_hours",
+          "ip_allowlist",
+          "public_bootstrap_servers",
+          "private_bootstrap_servers",
+          "nodes",
+          "password"
+        ],
+        "title": "KafkaClusterCreatedResponse",
+        "type": "object"
+      },
+      "KafkaClusterResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "ca_pem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ca Pem"
+          },
+          "cluster_id": {
+            "format": "uuid",
+            "title": "Cluster Id",
+            "type": "string"
+          },
+          "controller_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controller Plan Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ip Allowlist",
+            "type": "array"
+          },
+          "kafka_version": {
+            "title": "Kafka Version",
+            "type": "string"
+          },
+          "monthly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Cost"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaNodeResponse"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "private_bootstrap_servers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Private Bootstrap Servers",
+            "type": "array"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "public_bootstrap_servers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Public Bootstrap Servers",
+            "type": "array"
+          },
+          "retention_hours": {
+            "title": "Retention Hours",
+            "type": "integer"
+          },
+          "sasl_mechanism": {
+            "default": "SCRAM-SHA-512",
+            "title": "Sasl Mechanism",
+            "type": "string"
+          },
+          "security_protocol": {
+            "default": "SASL_SSL",
+            "title": "Security Protocol",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Detail"
+          },
+          "topology": {
+            "title": "Topology",
+            "type": "string"
+          },
+          "username": {
+            "default": "customer",
+            "title": "Username",
+            "type": "string"
+          },
+          "vpc_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vpc Id"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "project_id",
+          "name",
+          "cluster_id",
+          "kafka_version",
+          "topology",
+          "plan_id",
+          "controller_plan_id",
+          "vpc_id",
+          "status",
+          "retention_hours",
+          "ip_allowlist",
+          "public_bootstrap_servers",
+          "private_bootstrap_servers",
+          "nodes"
+        ],
+        "title": "KafkaClusterResponse",
+        "type": "object"
+      },
+      "KafkaNodePowerResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "KafkaNodePowerResponse",
+        "type": "object"
+      },
+      "KafkaNodeResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "private_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Host"
+          },
+          "public_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Host"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "vm_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vm Id"
+          }
+        },
+        "required": [
+          "id",
+          "ordinal",
+          "role",
+          "vm_id",
+          "status"
+        ],
+        "title": "KafkaNodeResponse",
+        "type": "object"
+      },
+      "KafkaPlanResponse": {
+        "properties": {
+          "disk_size": {
+            "title": "Disk Size",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mem": {
+            "title": "Mem",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price_per_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Month"
+          },
+          "vcpu": {
+            "title": "Vcpu",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "vcpu",
+          "mem",
+          "disk_size",
+          "price_per_month"
+        ],
+        "title": "KafkaPlanResponse",
+        "type": "object"
+      },
+      "KafkaRegionResponse": {
+        "properties": {
+          "default_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Version"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "versions",
+          "default_version"
+        ],
+        "title": "KafkaRegionResponse",
+        "type": "object"
+      },
+      "KafkaTopologyResponse": {
+        "properties": {
+          "brokers": {
+            "title": "Brokers",
+            "type": "integer"
+          },
+          "controllers": {
+            "title": "Controllers",
+            "type": "integer"
+          },
+          "id": {
+            "enum": [
+              "dev",
+              "ha"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "nodes": {
+            "title": "Nodes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "brokers",
+          "controllers",
+          "nodes"
+        ],
+        "title": "KafkaTopologyResponse",
         "type": "object"
       },
       "LBCertificateResponse": {
@@ -2290,6 +3216,37 @@
           "count"
         ],
         "title": "Page[AppJobRunResponse]",
+        "type": "object"
+      },
+      "Page_KafkaClusterResponse_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaClusterResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "limit",
+          "offset",
+          "count"
+        ],
+        "title": "Page[KafkaClusterResponse]",
         "type": "object"
       },
       "Page_LoadBalancerResponse_": {
@@ -4429,6 +5386,22 @@
         "title": "PgTopologyResponse",
         "type": "object"
       },
+      "UpdateKafkaAllowlistRequest": {
+        "properties": {
+          "ip_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ip Allowlist",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ip_allowlist"
+        ],
+        "title": "UpdateKafkaAllowlistRequest",
+        "type": "object"
+      },
       "UpdatePgAllowlistRequest": {
         "properties": {
           "ip_allowlist": {
@@ -4813,6 +5786,28 @@
             "default": "",
             "title": "Repo Full Name",
             "type": "string"
+          },
+          "running_docker_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Docker Image"
+          },
+          "running_docker_image_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Docker Image Digest"
           },
           "runtime_type": {
             "default": "firecracker",
@@ -5782,6 +6777,28 @@
             ],
             "title": "Deploy State"
           },
+          "docker_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Docker Image"
+          },
+          "docker_image_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Docker Image Digest"
+          },
           "duration_ms": {
             "anyOf": [
               {
@@ -5959,6 +6976,144 @@
           "virtual_hosted_example"
         ],
         "title": "V1ConnectionInfo",
+        "type": "object"
+      },
+      "V1DNSRRset": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "managed": {
+            "title": "Managed",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "ttl": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "zone_id": {
+            "title": "Zone Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "zone_id",
+          "name",
+          "type",
+          "ttl",
+          "records",
+          "managed",
+          "revision"
+        ],
+        "title": "V1DNSRRset",
+        "type": "object"
+      },
+      "V1DNSRRsetCreate": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Records",
+            "type": "array"
+          },
+          "ttl": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "ttl",
+          "records"
+        ],
+        "title": "V1DNSRRsetCreate",
+        "type": "object"
+      },
+      "V1DNSRRsetReplace": {
+        "properties": {
+          "expected_revision": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Revision",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Records",
+            "type": "array"
+          },
+          "ttl": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl"
+          }
+        },
+        "required": [
+          "ttl",
+          "records",
+          "expected_revision"
+        ],
+        "title": "V1DNSRRsetReplace",
         "type": "object"
       },
       "V1DNSRecord": {
@@ -8126,6 +9281,18 @@
             "title": "Interfaces",
             "type": "array"
           },
+          "mem": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mem"
+          },
           "name": {
             "description": "VM display name",
             "maxLength": 255,
@@ -8164,6 +9331,18 @@
             },
             "title": "Ssh Key Ids",
             "type": "array"
+          },
+          "vcpu": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcpu"
           },
           "vm_plan_id": {
             "description": "VM plan UUID",
@@ -9896,7 +11075,7 @@
     },
     "/account/balance": {
       "get": {
-        "description": "The balance of the account the key belongs to, as the billing service sees it at the moment of the request. Requires `billing:read`, which is governed by `account:view_billing` — held by the account owner only. `503 billing_unavailable` means the balance could not be read; it is never reported as zero.",
+        "description": "The balance of the account the key belongs to, as the billing service sees it at the moment of the request. Requires `billing:read`, which is governed by `account:view_billing` — held by account owners and admins. `503 billing_unavailable` means the balance could not be read; it is never reported as zero.",
         "operationId": "account_get_balance",
         "responses": {
           "200": {
@@ -9916,6 +11095,80 @@
           }
         ],
         "summary": "Read the account balance",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/account/funds": {
+      "get": {
+        "description": "Billing's read-only quote, including credits, cash, reason and shortfall.",
+        "operationId": "account_preview_funds",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "amount",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ],
+              "title": "Amount"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundsCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Preview payment allocation",
         "tags": [
           "account"
         ]
@@ -11845,6 +13098,240 @@
         ]
       }
     },
+    "/dns/zones/{zone_id}/rrsets": {
+      "post": {
+        "operationId": "dns_create_dns_rrset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zone_id",
+            "required": true,
+            "schema": {
+              "title": "Zone Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1DNSRRsetCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1DNSRRset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Create a complete DNS RRset without replacing existing data",
+        "tags": [
+          "dns"
+        ]
+      }
+    },
+    "/dns/zones/{zone_id}/rrsets/{rrset_id}": {
+      "delete": {
+        "operationId": "dns_delete_dns_rrset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zone_id",
+            "required": true,
+            "schema": {
+              "title": "Zone Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rrset_id",
+            "required": true,
+            "schema": {
+              "title": "Rrset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_revision",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Expected Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete a complete RRset only if the revision matches",
+        "tags": [
+          "dns"
+        ]
+      },
+      "get": {
+        "operationId": "dns_get_dns_rrset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zone_id",
+            "required": true,
+            "schema": {
+              "title": "Zone Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rrset_id",
+            "required": true,
+            "schema": {
+              "title": "Rrset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1DNSRRset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Read a complete DNS RRset and its revision",
+        "tags": [
+          "dns"
+        ]
+      },
+      "put": {
+        "operationId": "dns_replace_dns_rrset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "zone_id",
+            "required": true,
+            "schema": {
+              "title": "Zone Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rrset_id",
+            "required": true,
+            "schema": {
+              "title": "Rrset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1DNSRRsetReplace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1DNSRRset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Atomically replace RRset values and TTL if the revision matches",
+        "tags": [
+          "dns"
+        ]
+      }
+    },
     "/dns/zones/{zone_id}/verify": {
       "post": {
         "operationId": "dns_verify_zone",
@@ -12804,6 +14291,32 @@
         "summary": "Delete an environment variable",
         "tags": [
           "functions"
+        ]
+      }
+    },
+    "/kafka/regions": {
+      "get": {
+        "operationId": "kafka_regions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaCatalogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Kafka regions, plans and Dev/HA topologies",
+        "tags": [
+          "kafka"
         ]
       }
     },
@@ -15725,7 +17238,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PgBackupsListResponse"
+                  "$ref": "#/components/schemas/PgBackupResponse"
                 }
               }
             },
@@ -18447,6 +19960,456 @@
         ]
       }
     },
+    "/projects/{project_id}/images": {
+      "get": {
+        "operationId": "vms_list_images",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cluster_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cluster Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImagesListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List images available to the project's account",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters": {
+      "get": {
+        "operationId": "kafka_list_clusters",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_KafkaClusterResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List Clusters",
+        "tags": [
+          "kafka"
+        ]
+      },
+      "post": {
+        "operationId": "kafka_create_cluster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKafkaClusterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaClusterCreatedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Create Cluster",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}": {
+      "delete": {
+        "operationId": "kafka_delete_cluster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Delete Cluster",
+        "tags": [
+          "kafka"
+        ]
+      },
+      "get": {
+        "operationId": "kafka_get_cluster",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaClusterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get Cluster",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/allowlist": {
+      "put": {
+        "operationId": "kafka_update_allowlist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKafkaAllowlistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaClusterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update Allowlist",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/nodes/{node_id}/canary-power": {
+      "post": {
+        "operationId": "kafka_canary_node_action",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Node Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KafkaCanaryPowerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaNodePowerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Closed canary node power verification; billing continues",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
     "/projects/{project_id}/kubernetes-clusters": {
       "get": {
         "operationId": "kubernetes_list_clusters",
@@ -20814,7 +22777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PgBackupsListResponse"
+                  "$ref": "#/components/schemas/PgBackupResponse"
                 }
               }
             },
@@ -25129,6 +27092,25 @@
             "schema": {
               "title": "Vpc Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Disable only this floating IP allocation; a replaced gateway returns 409 nat_gateway_changed.",
+            "in": "query",
+            "name": "expected_fip_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Disable only this floating IP allocation; a replaced gateway returns 409 nat_gateway_changed.",
+              "title": "Expected Fip Id"
             }
           }
         ],
