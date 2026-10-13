@@ -39,6 +39,7 @@ func newVMCommand(env *Env) *cobra.Command {
 		vmPowerCommand(env, "restart", "Перезагрузить ВМ", "vms_restart_vm"),
 		vmBackupCommand(env),
 	)
+	cmd.AddCommand(newProjectImagesCommand(env))
 	return cmd
 }
 
