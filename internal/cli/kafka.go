@@ -98,5 +98,17 @@ func newKafkaCommand(env *Env) *cobra.Command {
 	}}
 	access.Flags().StringSliceVar(&cidrs, "allow", []string{}, "IPv4 CIDR; пусто — закрыть публичный доступ")
 	root.AddCommand(access)
+	var power string
+	canary := &cobra.Command{Use: "canary-power <cluster-id> <node-id>", Short: "Закрытый canary: start/stop узла; оплата продолжается", Args: cobra.ExactArgs(2), Annotations: ops("kafka_canary_node_action"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		return request(cmd, http.MethodPost, p+"/nodes/"+url.PathEscape(args[1])+"/canary-power", map[string]string{"action": power})
+	}}
+	canary.Flags().StringVar(&power, "action", "", "start или stop")
+	_ = canary.MarkFlagRequired("action")
+	root.AddCommand(canary)
+
 	return root
 }

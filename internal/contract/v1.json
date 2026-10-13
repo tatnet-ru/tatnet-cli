@@ -940,6 +940,23 @@
         "title": "ImagesListResponse",
         "type": "object"
       },
+      "KafkaCanaryPowerRequest": {
+        "properties": {
+          "action": {
+            "enum": [
+              "start",
+              "stop"
+            ],
+            "title": "Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "KafkaCanaryPowerRequest",
+        "type": "object"
+      },
       "KafkaCatalogResponse": {
         "properties": {
           "controller_plans": {
@@ -1326,6 +1343,24 @@
           "nodes"
         ],
         "title": "KafkaClusterResponse",
+        "type": "object"
+      },
+      "KafkaNodePowerResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "KafkaNodePowerResponse",
         "type": "object"
       },
       "KafkaNodeResponse": {
@@ -20292,6 +20327,84 @@
           }
         ],
         "summary": "Update Allowlist",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/nodes/{node_id}/canary-power": {
+      "post": {
+        "operationId": "kafka_canary_node_action",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Node Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KafkaCanaryPowerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaNodePowerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Closed canary node power verification; billing continues",
         "tags": [
           "kafka"
         ]
