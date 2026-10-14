@@ -3136,6 +3136,15 @@
             ],
             "title": "Region Observed At"
           },
+          "scheme": {
+            "default": "internet-facing",
+            "enum": [
+              "internet-facing",
+              "internal"
+            ],
+            "title": "Scheme",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -3229,6 +3238,15 @@
               }
             ],
             "title": "Region Observed At"
+          },
+          "scheme": {
+            "default": "internet-facing",
+            "enum": [
+              "internet-facing",
+              "internal"
+            ],
+            "title": "Scheme",
+            "type": "string"
           },
           "status": {
             "title": "Status",
@@ -5503,6 +5521,23 @@
         "title": "PgTopologyResponse",
         "type": "object"
       },
+      "RenameVPCRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Display name; network identifiers stay unchanged",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "RenameVPCRequest",
+        "type": "object"
+      },
       "UpdateKafkaAllowlistRequest": {
         "properties": {
           "ip_allowlist": {
@@ -6272,6 +6307,11 @@
             "title": "App Id",
             "type": "string"
           },
+          "auto_configure_dns": {
+            "default": true,
+            "title": "Auto Configure Dns",
+            "type": "boolean"
+          },
           "build_id": {
             "anyOf": [
               {
@@ -6337,6 +6377,22 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "target_cname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Cname"
+          },
+          "target_cname_pending": {
+            "default": false,
+            "title": "Target Cname Pending",
+            "type": "boolean"
           },
           "target_ip": {
             "anyOf": [
@@ -7388,6 +7444,17 @@
       },
       "V1DomainCreate": {
         "properties": {
+          "auto_configure_dns": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Configure Dns"
+          },
           "domain": {
             "maxLength": 255,
             "minLength": 1,
@@ -7409,6 +7476,40 @@
           "domain"
         ],
         "title": "V1DomainCreate",
+        "type": "object"
+      },
+      "V1DomainVerifyResponse": {
+        "properties": {
+          "domain": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/V1AppDomain"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "verified"
+        ],
+        "title": "V1DomainVerifyResponse",
         "type": "object"
       },
       "V1EnvVar": {
@@ -8492,6 +8593,15 @@
             "description": "vpc mode: must match the VPC's region",
             "title": "Region Id"
           },
+          "scheme": {
+            "default": "internet-facing",
+            "enum": [
+              "internet-facing",
+              "internal"
+            ],
+            "title": "Scheme",
+            "type": "string"
+          },
           "vpc_id": {
             "anyOf": [
               {
@@ -8574,6 +8684,7 @@
         "type": "object"
       },
       "V1LBUpdate": {
+        "additionalProperties": false,
         "properties": {
           "node_count": {
             "anyOf": [
@@ -18827,6 +18938,71 @@
         ]
       }
     },
+    "/projects/{project_id}/apps/{app_id}/domains/{domain_id}/verify": {
+      "post": {
+        "operationId": "apps_verify_domain",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "domain_id",
+            "required": true,
+            "schema": {
+              "title": "Domain Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1DomainVerifyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Verify domain DNS and request a certificate",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
     "/projects/{project_id}/apps/{app_id}/env": {
       "get": {
         "operationId": "apps_list_env_vars",
@@ -27250,6 +27426,61 @@
           }
         ],
         "summary": "Get a VPC",
+        "tags": [
+          "networking"
+        ]
+      },
+      "patch": {
+        "operationId": "networking_rename_vpc",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vpc_id",
+            "required": true,
+            "schema": {
+              "title": "Vpc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameVPCRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Vpc"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Rename a VPC",
         "tags": [
           "networking"
         ]

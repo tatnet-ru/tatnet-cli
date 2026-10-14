@@ -68,6 +68,16 @@ func newVPCCommand(e *Env) *cobra.Command {
 		}
 		return call(c.NetworkingGetVpcWithResponse(cmd.Context(), id))
 	})
+	var renameName string
+	rename := networkCommand(e, "rename <сеть>", "Переименовать сеть без изменения её настроек", "networking_rename_vpc", 1, vpcColumns, func(cmd *cobra.Command, c *tatnet.ClientWithResponses, args []string) (any, error) {
+		id, err := e.vpcID(cmd.Context(), args[0])
+		if err != nil {
+			return nil, err
+		}
+		return call(c.NetworkingRenameVpcWithResponse(cmd.Context(), id, tatnet.RenameVPCRequest{Name: renameName}))
+	})
+	rename.Flags().StringVar(&renameName, "name", "", "новое название сети")
+	_ = rename.MarkFlagRequired("name")
 	var yes bool
 	del := &cobra.Command{Use: "delete <сеть>", Short: "Удалить сеть", Annotations: ops("networking_delete_vpc"), Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, a []string) error {
 		id, err := e.vpcID(cmd.Context(), a[0])
@@ -152,7 +162,7 @@ func newVPCCommand(e *Env) *cobra.Command {
 	}}
 	addYes(release, &releaseYes)
 	reserved.AddCommand(reserve, release)
-	root.AddCommand(list, create, get, del, nat, reserved)
+	root.AddCommand(list, create, get, rename, del, nat, reserved)
 	return root
 }
 

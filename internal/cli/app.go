@@ -612,6 +612,23 @@ func appDomainCommand(env *Env) *cobra.Command {
 	}
 	addYes(remove, &yes)
 
+	verify := &cobra.Command{Use: "verify <app> <домен>", Short: "Проверить DNS домена и запросить сертификат", Annotations: ops("apps_verify_domain"), Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
+		c, project, id, err := env.appTarget(cmd.Context(), args[0])
+		if err != nil {
+			return err
+		}
+		domainID, err := resolveRef(cmd.Context(), kindDomain, args[1], func(ctx context.Context) ([]any, error) { return listDomains(ctx, c, project, id) }, "domain")
+		if err != nil {
+			return err
+		}
+		result, err := call(c.AppsVerifyDomainWithResponse(cmd.Context(), project, id, domainID))
+		if err != nil {
+			return err
+		}
+		return env.Printer.Object(result, domainColumns)
+	}}
+	cmd.AddCommand(verify)
+
 	cmd.AddCommand(list, add, remove)
 	return cmd
 }
