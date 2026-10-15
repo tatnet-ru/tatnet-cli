@@ -363,3 +363,7 @@ tatnet ai generate --kind chat --body @chat-request.json
 ### Переименование сети
 
 `tatnet vpc rename <id-или-имя> --name "Новое название"` меняет только название VPC. Подсеть, OVN, порты и NAT сохраняются; требуется право `vpc:update`.
+
+S3 bucket storage is unlimited. `s3 bucket create` has no byte-quota flag;
+`s3 usage` reports measured consumption for reporting and billing. Account
+bucket-count admission and per-upload presigned constraints remain separate.
