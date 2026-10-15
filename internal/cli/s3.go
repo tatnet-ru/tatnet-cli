@@ -16,7 +16,6 @@ var bucketColumns = []output.Column{
 	output.Col("статус", "status"),
 	output.Col("публичный", "is_public"),
 	output.Col("версии", "versioning"),
-	output.Col("квота", "quota_bytes"),
 	output.WideCol("id", "id"),
 	output.WideCol("публичный адрес", "public_base_url"),
 }
@@ -66,7 +65,6 @@ func newS3Command(env *Env) *cobra.Command {
 					output.Col("бакет", "name"),
 					output.Col("байт", "bytes_stored"),
 					output.Col("объектов", "object_count"),
-					output.Col("квота", "quota_bytes"),
 					output.WideCol("снимок", "snapshot_at"),
 				})
 			},
@@ -158,7 +156,6 @@ func s3BucketCommand(env *Env) *cobra.Command {
 	}
 
 	var public, versioning bool
-	var quota int
 	create := &cobra.Command{
 		Use:         "create <имя>",
 		Short:       "Создать бакет",
@@ -173,7 +170,6 @@ func s3BucketCommand(env *Env) *cobra.Command {
 				Name:       args[0],
 				IsPublic:   optBool(cmd, "public", public),
 				Versioning: optBool(cmd, "versioning", versioning),
-				QuotaBytes: optInt(cmd, "quota-bytes", quota),
 			}))
 			if err != nil {
 				return err
@@ -183,7 +179,6 @@ func s3BucketCommand(env *Env) *cobra.Command {
 	}
 	create.Flags().BoolVar(&public, "public", false, "публичное чтение")
 	create.Flags().BoolVar(&versioning, "versioning", false, "включить версионирование")
-	create.Flags().IntVar(&quota, "quota-bytes", 0, "квота в байтах")
 
 	var upublic, uversioning bool
 	update := &cobra.Command{

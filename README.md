@@ -374,3 +374,7 @@ tatnet api /projects/<project-id>/kubernetes-clusters/<cluster-id>/settings -X P
 обновления версий. Настройка применяется к control plane последовательно.
 
 `--allow-unknown` нужен версиям CLI, выпущенным до появления этой ручки API.
+
+S3 bucket storage is unlimited. `s3 bucket create` has no byte-quota flag;
+`s3 usage` reports measured consumption for reporting and billing. Account
+bucket-count admission and per-upload presigned constraints remain separate.
