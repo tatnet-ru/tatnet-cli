@@ -364,17 +364,6 @@ tatnet ai generate --kind chat --body @chat-request.json
 
 `tatnet vpc rename <id-или-имя> --name "Новое название"` меняет только название VPC. Подсеть, OVN, порты и NAT сохраняются; требуется право `vpc:update`.
 
-Минимальная версия TLS для Kubernetes API (1.2 по умолчанию, доступна 1.3):
-
-```sh
-tatnet api /projects/<project-id>/kubernetes-clusters/<cluster-id>/settings -X PATCH -f tls_min_version=VersionTLS13 --allow-unknown
-```
-
-Нужны права `k8s_cluster:update`; кластер должен быть готов без текущего
-обновления версий. Настройка применяется к control plane последовательно.
-
-`--allow-unknown` нужен версиям CLI, выпущенным до появления этой ручки API.
-
 S3 bucket storage is unlimited. `s3 bucket create` has no byte-quota flag;
 `s3 usage` reports measured consumption for reporting and billing. Account
 bucket-count admission and per-upload presigned constraints remain separate.
