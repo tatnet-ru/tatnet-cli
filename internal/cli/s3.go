@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
@@ -31,6 +34,7 @@ var accessKeyColumns = []output.Column{
 }
 
 func newS3Command(env *Env) *cobra.Command {
+	var connectionRegion string
 	cmd := &cobra.Command{
 		Use:     "s3",
 		Aliases: []string{"object-storage"},
@@ -38,6 +42,17 @@ func newS3Command(env *Env) *cobra.Command {
 	}
 	cmd.AddCommand(
 		s3BucketCommand(env),
+		&cobra.Command{Use: "regions", Short: "Регионы S3", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+			status, _, body, err := env.rawRequest(cmd, http.MethodGet, "/object-storage/regions", nil, nil)
+			if err != nil {
+				return err
+			}
+			v, err := decode(status, body, nil)
+			if err != nil {
+				return err
+			}
+			return env.Printer.Raw(v)
+		}},
 		s3ObjectCommand(env),
 		s3KeyCommand(env),
 		&cobra.Command{
@@ -80,7 +95,7 @@ func newS3Command(env *Env) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				v, err := call(c.ObjectStorageGetConnectionInfoWithResponse(cmd.Context()))
+				v, err := call(c.ObjectStorageGetConnectionInfoWithResponse(cmd.Context(), s3RegionQuery(connectionRegion)))
 				if err != nil {
 					return err
 				}
@@ -93,6 +108,11 @@ func newS3Command(env *Env) *cobra.Command {
 			},
 		},
 	)
+	for _, child := range cmd.Commands() {
+		if child.Name() == "connection-info" {
+			child.Flags().StringVar(&connectionRegion, "region", "", "регион S3 (по умолчанию — регион API)")
+		}
+	}
 	return cmd
 }
 
@@ -156,6 +176,7 @@ func s3BucketCommand(env *Env) *cobra.Command {
 	}
 
 	var public, versioning bool
+	var region string
 	create := &cobra.Command{
 		Use:         "create <имя>",
 		Short:       "Создать бакет",
@@ -166,17 +187,21 @@ func s3BucketCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			v, err := call(c.ObjectStorageCreateBucketWithResponse(cmd.Context(), tatnet.V1BucketCreate{
-				Name:       args[0],
-				IsPublic:   optBool(cmd, "public", public),
-				Versioning: optBool(cmd, "versioning", versioning),
-			}))
+			body, err := json.Marshal(struct {
+				tatnet.V1BucketCreate
+				Region string `json:"region,omitempty"`
+			}{V1BucketCreate: tatnet.V1BucketCreate{Name: args[0], IsPublic: optBool(cmd, "public", public), Versioning: optBool(cmd, "versioning", versioning)}, Region: region})
+			if err != nil {
+				return err
+			}
+			v, err := call(c.ObjectStorageCreateBucketWithBodyWithResponse(cmd.Context(), "application/json", bytes.NewReader(body)))
 			if err != nil {
 				return err
 			}
 			return env.Printer.Object(v, bucketColumns)
 		},
 	}
+	create.Flags().StringVar(&region, "region", "", "регион размещения бакета")
 	create.Flags().BoolVar(&public, "public", false, "публичное чтение")
 	create.Flags().BoolVar(&versioning, "versioning", false, "включить версионирование")
 
@@ -507,4 +532,15 @@ func s3KeyCommand(env *Env) *cobra.Command {
 
 	cmd.AddCommand(list, create, update, del)
 	return cmd
+}
+
+func s3RegionQuery(region string) tatnet.RequestEditorFn {
+	return func(_ context.Context, r *http.Request) error {
+		if region != "" {
+			q := r.URL.Query()
+			q.Set("region", region)
+			r.URL.RawQuery = q.Encode()
+		}
+		return nil
+	}
 }
