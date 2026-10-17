@@ -367,3 +367,15 @@ tatnet ai generate --kind chat --body @chat-request.json
 S3 bucket storage is unlimited. `s3 bucket create` has no byte-quota flag;
 `s3 usage` reports measured consumption for reporting and billing. Account
 bucket-count admission and per-upload presigned constraints remain separate.
+
+### Регион S3
+
+```sh
+tatnet s3 regions
+tatnet s3 bucket create photos --region spb-1
+tatnet s3 connection-info --region spb-1
+```
+
+Без `--region` API использует прежний регион по умолчанию. Неизвестный или
+закрытый для новых бакетов регион возвращает ошибку; размещение существующего
+бакета не меняется.
