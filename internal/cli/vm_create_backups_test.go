@@ -55,3 +55,12 @@ func TestCreateVMIncludesBackupPolicyAtomically(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateVMRejectsRetiredBackupCountFlag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("retired flag must fail before an API request") }))
+	defer srv.Close()
+	_, _, err := run(t, srv, "vm", "create", "--backup-count", "3")
+	if err == nil {
+		t.Fatal("retired backup-count flag is still accepted")
+	}
+}
