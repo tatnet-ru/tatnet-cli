@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -187,7 +188,8 @@ func vmCreateCommand(env *Env) *cobra.Command {
 	f.StringSliceVar(&sshKeys, "ssh-key", nil, "id SSH-ключей (можно повторять)")
 	f.StringVar(&cloudInitFile, "cloud-init", "", "файл с cloud-init (- для stdin)")
 	f.BoolVar(&guestAgent, "guest-agent", false, "ставить qemu-guest-agent")
-	f.IntVar(&backups, "backup-count", 0, "сколько бэкапов хранить")
+	f.IntVar(&backups, "backup-count", 0, "устаревший параметр")
+	_ = f.MarkDeprecated("backup-count", "используйте vm backup policy для расписания и срока хранения")
 	f.IntVar(&months, "period-months", 0, "оплаченный период в месяцах")
 	f.IntVar(&days, "period-days", 0, "оплаченный период в днях")
 	f.BoolVar(&autoRenew, "auto-renew", false, "продлевать автоматически")
@@ -366,7 +368,7 @@ func vmBackupCommand(env *Env) *cobra.Command {
 	}
 	addYes(del, &yes)
 
-	cmd.AddCommand(list, create, del)
+	cmd.AddCommand(list, create, del, vmBackupPolicyCommand(env))
 	return cmd
 }
 
@@ -430,4 +432,60 @@ func readFileOrStdin(path string) ([]byte, error) {
 		return io.ReadAll(os.Stdin)
 	}
 	return os.ReadFile(path)
+}
+
+// vmBackupPolicyCommand uses the same public API and authorization as the panel.
+func vmBackupPolicyCommand(env *Env) *cobra.Command {
+	var enabled bool
+	var hour, days int
+	cmd := &cobra.Command{Use: "policy <вм>", Short: "Посмотреть или настроить ежедневные автобэкапы", Annotations: ops("vms_get_backup_policy", "vms_set_backup_policy"), Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, project, id, err := env.vmTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			path := "/projects/" + project + "/vms/" + id + "/backup-policy"
+			method := "GET"
+			var body []byte
+			if cmd.Flags().Changed("enabled") || cmd.Flags().Changed("hour-utc") || cmd.Flags().Changed("retention-days") {
+				// Fetch current state first so editing retention never disables the policy.
+				status, _, raw, e := env.rawRequest(cmd, "GET", path, nil, nil)
+				if e != nil {
+					return e
+				}
+				if status >= 400 {
+					return &APIError{Status: status, Detail: detailOf(raw), Body: raw}
+				}
+				var policy map[string]any
+				if e = json.Unmarshal(raw, &policy); e != nil {
+					return e
+				}
+				if cmd.Flags().Changed("enabled") {
+					policy["enabled"] = enabled
+				}
+				if cmd.Flags().Changed("hour-utc") {
+					policy["hour_utc"] = hour
+				}
+				if cmd.Flags().Changed("retention-days") {
+					policy["retention_days"] = days
+				}
+				body, e = json.Marshal(policy)
+				if e != nil {
+					return e
+				}
+				method = "PUT"
+			}
+			status, _, raw, err := env.rawRequest(cmd, method, path, body, nil)
+			if err != nil {
+				return err
+			}
+			if status >= 400 {
+				return &APIError{Status: status, Detail: detailOf(raw), Body: raw}
+			}
+			return printRaw(cmd, env, raw)
+		}}
+	cmd.Flags().BoolVar(&enabled, "enabled", false, "включить/выключить расписание")
+	cmd.Flags().IntVar(&hour, "hour-utc", 0, "час ежедневного запуска, UTC (0–23)")
+	cmd.Flags().IntVar(&days, "retention-days", 7, "срок хранения автоматических копий (1–365 дней)")
+	return cmd
 }

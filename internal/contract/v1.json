@@ -703,18 +703,6 @@
             "title": "Balance",
             "type": "string"
           },
-          "bonus_cap": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bonus Cap"
-          },
           "credits": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Credits",
@@ -727,18 +715,6 @@
           "currency": {
             "default": "RUB",
             "title": "Currency",
-            "type": "string"
-          },
-          "estimated_bonus_charge": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Estimated Bonus Charge",
-            "type": "string"
-          },
-          "estimated_main_charge": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Estimated Main Charge",
             "type": "string"
           },
           "has_real_topup": {
@@ -758,17 +734,6 @@
             "title": "Real Topup Min",
             "type": "string"
           },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
           "required": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Required",
@@ -777,12 +742,6 @@
           "shortfall": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Shortfall",
-            "type": "string"
-          },
-          "usable_credits": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Usable Credits",
             "type": "string"
           }
         },
@@ -6713,16 +6672,10 @@
             "title": "Public Base Url"
           },
           "quota_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Storage cap in bytes; null means the account default",
-            "title": "Quota Bytes"
+            "deprecated": true,
+            "description": "Storage is unlimited; must be null",
+            "title": "Quota Bytes",
+            "type": "null"
           },
           "region": {
             "title": "Region",
@@ -6765,17 +6718,22 @@
             "type": "string"
           },
           "quota_bytes": {
+            "deprecated": true,
+            "description": "Storage is unlimited; must be null",
+            "title": "Quota Bytes",
+            "type": "null"
+          },
+          "region": {
             "anyOf": [
               {
-                "minimum": 0.0,
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Storage cap in bytes",
-            "title": "Quota Bytes"
+            "description": "Storage region; omitted uses the default region",
+            "title": "Region"
           },
           "versioning": {
             "default": false,
@@ -6857,15 +6815,10 @@
             "type": "integer"
           },
           "quota_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quota Bytes"
+            "deprecated": true,
+            "description": "Storage is unlimited; must be null",
+            "title": "Quota Bytes",
+            "type": "null"
           },
           "snapshot_at": {
             "anyOf": [
@@ -9250,6 +9203,45 @@
         "title": "V1ReservedIpCreate",
         "type": "object"
       },
+      "V1S3Region": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          }
+        },
+        "required": [
+          "region",
+          "endpoint",
+          "enabled"
+        ],
+        "title": "V1S3Region",
+        "type": "object"
+      },
+      "V1S3Regions": {
+        "properties": {
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/V1S3Region"
+            },
+            "title": "Regions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "regions"
+        ],
+        "title": "V1S3Regions",
+        "type": "object"
+      },
       "V1SshKey": {
         "properties": {
           "id": {
@@ -9435,7 +9427,7 @@
           },
           "backup_count": {
             "default": 0,
-            "description": "Number of backup slots (0..10)",
+            "description": "Deprecated compatibility field; backup storage is metered separately",
             "maximum": 10.0,
             "minimum": 0.0,
             "title": "Backup Count",
@@ -9817,6 +9809,22 @@
       },
       "V1VolumeAttachment": {
         "properties": {
+          "desired_state": {
+            "default": "present",
+            "title": "Desired State",
+            "type": "string"
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -10109,6 +10117,88 @@
           }
         },
         "title": "V1ZoneUpdate",
+        "type": "object"
+      },
+      "VMBackupPolicyRequest": {
+        "properties": {
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "hour_utc": {
+            "default": 0,
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Hour Utc",
+            "type": "integer"
+          },
+          "retention_days": {
+            "default": 7,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Retention Days",
+            "type": "integer"
+          }
+        },
+        "title": "VMBackupPolicyRequest",
+        "type": "object"
+      },
+      "VMBackupPolicyResponse": {
+        "properties": {
+          "billing_model": {
+            "default": "storage",
+            "title": "Billing Model",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "hour_utc": {
+            "default": 0,
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Hour Utc",
+            "type": "integer"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          },
+          "price_per_gb_hour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Gb Hour"
+          },
+          "retention_days": {
+            "default": 7,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Retention Days",
+            "type": "integer"
+          },
+          "storage_bytes": {
+            "default": 0,
+            "title": "Storage Bytes",
+            "type": "integer"
+          }
+        },
+        "title": "VMBackupPolicyResponse",
         "type": "object"
       },
       "VMStartRequest": {
@@ -11366,6 +11456,27 @@
                 }
               ],
               "title": "Period Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "apps",
+                    "supabase",
+                    "t1000"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product"
             }
           }
         ],
@@ -17110,12 +17221,66 @@
       "get": {
         "description": "What to put in an S3 client's configuration. Pair it with an access key.",
         "operationId": "object_storage_get_connection_info",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Region"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/V1ConnectionInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "S3 endpoint and region",
+        "tags": [
+          "object-storage"
+        ]
+      }
+    },
+    "/object-storage/regions": {
+      "get": {
+        "operationId": "object_storage_list_regions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1S3Regions"
                 }
               }
             },
@@ -17127,7 +17292,7 @@
             "TatNetAPIKey": []
           }
         ],
-        "summary": "S3 endpoint and region",
+        "summary": "List S3 regions",
         "tags": [
           "object-storage"
         ]
@@ -24759,6 +24924,126 @@
         ]
       }
     },
+    "/projects/{project_id}/vms/{vm_id}/backup-policy": {
+      "get": {
+        "operationId": "vms_get_backup_policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMBackupPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get Backup Policy",
+        "tags": [
+          "vms"
+        ]
+      },
+      "put": {
+        "operationId": "vms_set_backup_policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMBackupPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMBackupPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Set Backup Policy",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
     "/projects/{project_id}/vms/{vm_id}/backups": {
       "get": {
         "operationId": "vms_list_backups",
@@ -26534,6 +26819,108 @@
           }
         ],
         "summary": "Get a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/backup-policy": {
+      "get": {
+        "operationId": "vms_get_backup_policy_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMBackupPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get Backup Policy By Id",
+        "tags": [
+          "vms"
+        ]
+      },
+      "put": {
+        "operationId": "vms_set_backup_policy_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMBackupPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMBackupPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Set Backup Policy By Id",
         "tags": [
           "vms"
         ]

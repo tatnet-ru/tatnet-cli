@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
@@ -42,7 +43,7 @@ func newS3Command(env *Env) *cobra.Command {
 	}
 	cmd.AddCommand(
 		s3BucketCommand(env),
-		&cobra.Command{Use: "regions", Short: "Регионы S3", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		&cobra.Command{Use: "regions", Short: "Регионы S3", Annotations: ops("object_storage_list_regions"), Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 			status, _, body, err := env.rawRequest(cmd, http.MethodGet, "/object-storage/regions", nil, nil)
 			if err != nil {
 				return err
@@ -91,12 +92,19 @@ func newS3Command(env *Env) *cobra.Command {
 			Annotations: ops("object_storage_get_connection_info"),
 			Args:        cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				c, err := env.Client()
+				path := "/object-storage/connection-info"
+				if connectionRegion != "" {
+					path += "?" + url.Values{"region": {connectionRegion}}.Encode()
+				}
+				status, _, raw, err := env.rawRequest(cmd, "GET", path, nil, nil)
 				if err != nil {
 					return err
 				}
-				v, err := call(c.ObjectStorageGetConnectionInfoWithResponse(cmd.Context(), s3RegionQuery(connectionRegion)))
-				if err != nil {
+				if status >= 400 {
+					return &APIError{Status: status, Detail: detailOf(raw), Body: raw}
+				}
+				var v map[string]any
+				if err = json.Unmarshal(raw, &v); err != nil {
 					return err
 				}
 				return env.Printer.Object(v, []output.Column{
