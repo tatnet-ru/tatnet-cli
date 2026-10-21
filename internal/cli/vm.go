@@ -113,6 +113,8 @@ func vmCreateCommand(env *Env) *cobra.Command {
 		name, hostname, image, plan, cluster, user string
 		cloudInitFile                              string
 		disk, backups, months, days                int
+		backupHour, backupDays                     int
+		automaticBackups                           bool
 		sshKeys, ifaces                            []string
 		guestAgent, autoRenew                      bool
 	)
@@ -126,6 +128,12 @@ func vmCreateCommand(env *Env) *cobra.Command {
 		Annotations: ops("vms_create_vm"),
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if !automaticBackups && (cmd.Flags().Changed("backup-hour-utc") || cmd.Flags().Changed("backup-retention-days")) {
+				return fmt.Errorf("для расписания укажите --auto-backups")
+			}
+			if automaticBackups && (backupHour < 0 || backupHour > 23 || backupDays < 1 || backupDays > 365) {
+				return fmt.Errorf("час бэкапа: 0–23 UTC; срок хранения: 1–365 дней")
+			}
 			c, err := env.Client()
 			if err != nil {
 				return err
@@ -151,6 +159,9 @@ func vmCreateCommand(env *Env) *cobra.Command {
 				AutoRenew:         optBool(cmd, "auto-renew", autoRenew),
 				InstallGuestAgent: optBool(cmd, "guest-agent", guestAgent),
 				SshKeyIds:         optStrSlice(cmd, "ssh-key", sshKeys),
+			}
+			if automaticBackups {
+				body.BackupPolicy = &tatnet.VMBackupPolicyRequest{Enabled: ptr(true), HourUtc: ptr(backupHour), RetentionDays: ptr(backupDays)}
 			}
 			if cloudInitFile != "" {
 				data, err := readFileOrStdin(cloudInitFile)
@@ -188,6 +199,9 @@ func vmCreateCommand(env *Env) *cobra.Command {
 	f.StringSliceVar(&sshKeys, "ssh-key", nil, "id SSH-ключей (можно повторять)")
 	f.StringVar(&cloudInitFile, "cloud-init", "", "файл с cloud-init (- для stdin)")
 	f.BoolVar(&guestAgent, "guest-agent", false, "ставить qemu-guest-agent")
+	f.BoolVar(&automaticBackups, "auto-backups", false, "ежедневные автобэкапы с оплатой занятого хранилища")
+	f.IntVar(&backupHour, "backup-hour-utc", 0, "час ежедневного бэкапа (0–23 UTC)")
+	f.IntVar(&backupDays, "backup-retention-days", 7, "срок хранения автоматических копий (1–365 дней)")
 	f.IntVar(&backups, "backup-count", 0, "устаревший параметр")
 	_ = f.MarkDeprecated("backup-count", "используйте vm backup policy для расписания и срока хранения")
 	f.IntVar(&months, "period-months", 0, "оплаченный период в месяцах")

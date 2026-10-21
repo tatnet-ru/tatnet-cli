@@ -703,6 +703,18 @@
             "title": "Balance",
             "type": "string"
           },
+          "bonus_cap": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Cap"
+          },
           "credits": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Credits",
@@ -715,6 +727,18 @@
           "currency": {
             "default": "RUB",
             "title": "Currency",
+            "type": "string"
+          },
+          "estimated_bonus_charge": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Bonus Charge",
+            "type": "string"
+          },
+          "estimated_main_charge": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Estimated Main Charge",
             "type": "string"
           },
           "has_real_topup": {
@@ -734,6 +758,17 @@
             "title": "Real Topup Min",
             "type": "string"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "required": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Required",
@@ -742,6 +777,12 @@
           "shortfall": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Shortfall",
+            "type": "string"
+          },
+          "usable_credits": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Usable Credits",
             "type": "string"
           }
         },
@@ -6507,12 +6548,28 @@
             ],
             "title": "Error"
           },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
           "id": {
             "title": "Id",
             "type": "string"
           },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "default": "manual",
+            "title": "Origin",
             "type": "string"
           },
           "parent_backup_id": {
@@ -6525,6 +6582,17 @@
               }
             ],
             "title": "Parent Backup Id"
+          },
+          "protected_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protected Until"
           },
           "size_bytes": {
             "anyOf": [
@@ -9432,6 +9500,16 @@
             "minimum": 0.0,
             "title": "Backup Count",
             "type": "integer"
+          },
+          "backup_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VMBackupPolicyRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "cloud_init": {
             "anyOf": [
