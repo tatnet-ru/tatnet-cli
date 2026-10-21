@@ -9493,14 +9493,6 @@
             "title": "Auto Renew",
             "type": "boolean"
           },
-          "backup_count": {
-            "default": 0,
-            "description": "Deprecated compatibility field; backup storage is metered separately",
-            "maximum": 10.0,
-            "minimum": 0.0,
-            "title": "Backup Count",
-            "type": "integer"
-          },
           "backup_policy": {
             "anyOf": [
               {
@@ -9549,7 +9541,7 @@
           },
           "ephemeral": {
             "default": false,
-            "description": "Ephemeral VM: no prepaid period or subscription. Billed per second of lifetime — from creation to the deletion request — at the plan's hourly rate (plus extra disk and public IP) through an hourly usage meter. Meant for short-lived machines (CI runners, batch jobs). Mutually exclusive with period_months/period_days and backup_count; cannot be resized; insufficient funds → 402 and no capacity → 503 immediately instead of a queued VM.",
+            "description": "Ephemeral VM: no prepaid period or subscription. Billed per second of lifetime — from creation to the deletion request — at the plan's hourly rate (plus extra disk and public IP) through an hourly usage meter. Meant for short-lived machines (CI runners, batch jobs). Mutually exclusive with period_months/period_days; cannot be resized; insufficient funds → 402 and no capacity → 503 immediately instead of a queued VM.",
             "title": "Ephemeral",
             "type": "boolean"
           },

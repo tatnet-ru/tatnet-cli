@@ -112,7 +112,7 @@ func vmCreateCommand(env *Env) *cobra.Command {
 	var (
 		name, hostname, image, plan, cluster, user string
 		cloudInitFile                              string
-		disk, backups, months, days                int
+		disk, months, days                         int
 		backupHour, backupDays                     int
 		automaticBackups                           bool
 		sshKeys, ifaces                            []string
@@ -153,7 +153,6 @@ func vmCreateCommand(env *Env) *cobra.Command {
 				ClusterId:         cluster,
 				DefaultUser:       user,
 				DiskSizeGb:        optInt(cmd, "disk", disk),
-				BackupCount:       optInt(cmd, "backup-count", backups),
 				PeriodMonths:      optInt(cmd, "period-months", months),
 				PeriodDays:        optInt(cmd, "period-days", days),
 				AutoRenew:         optBool(cmd, "auto-renew", autoRenew),
@@ -202,8 +201,6 @@ func vmCreateCommand(env *Env) *cobra.Command {
 	f.BoolVar(&automaticBackups, "auto-backups", false, "ежедневные автобэкапы с оплатой занятого хранилища")
 	f.IntVar(&backupHour, "backup-hour-utc", 0, "час ежедневного бэкапа (0–23 UTC)")
 	f.IntVar(&backupDays, "backup-retention-days", 7, "срок хранения автоматических копий (1–365 дней)")
-	f.IntVar(&backups, "backup-count", 0, "устаревший параметр")
-	_ = f.MarkDeprecated("backup-count", "используйте vm backup policy для расписания и срока хранения")
 	f.IntVar(&months, "period-months", 0, "оплаченный период в месяцах")
 	f.IntVar(&days, "period-days", 0, "оплаченный период в днях")
 	f.BoolVar(&autoRenew, "auto-renew", false, "продлевать автоматически")
