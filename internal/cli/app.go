@@ -40,6 +40,7 @@ func newAppCommand(env *Env) *cobra.Command {
 		appBuildCommand(env),
 		appEnvCommand(env),
 		appDomainCommand(env),
+		appDomainPolicyCommand(env),
 		appJobCommand(env),
 		appRunCommand(env),
 	)
