@@ -359,6 +359,38 @@
         "title": "AppJobUpdateRequest",
         "type": "object"
       },
+      "AttachInterfaceResponse": {
+        "properties": {
+          "interface_id": {
+            "title": "Interface Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "interface_id"
+        ],
+        "title": "AttachInterfaceResponse",
+        "type": "object"
+      },
+      "AttachVPCInterfaceRequest": {
+        "properties": {
+          "vpc_id": {
+            "description": "VPC UUID in the VM's account and region",
+            "title": "Vpc Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vpc_id"
+        ],
+        "title": "AttachVPCInterfaceRequest",
+        "type": "object"
+      },
       "ChangePgPlanRequest": {
         "description": "Смена тарифа: только вверх (память, vCPU и диск не меньше текущих).\nУзлы перезагружаются по одному — у одиночного кластера это простой на\nвремя перезагрузки VM.",
         "properties": {
@@ -703,18 +735,6 @@
             "title": "Balance",
             "type": "string"
           },
-          "bonus_cap": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bonus Cap"
-          },
           "credits": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Credits",
@@ -727,18 +747,6 @@
           "currency": {
             "default": "RUB",
             "title": "Currency",
-            "type": "string"
-          },
-          "estimated_bonus_charge": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Estimated Bonus Charge",
-            "type": "string"
-          },
-          "estimated_main_charge": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Estimated Main Charge",
             "type": "string"
           },
           "has_real_topup": {
@@ -758,17 +766,6 @@
             "title": "Real Topup Min",
             "type": "string"
           },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
           "required": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Required",
@@ -777,12 +774,6 @@
           "shortfall": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Shortfall",
-            "type": "string"
-          },
-          "usable_credits": {
-            "default": "0",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Usable Credits",
             "type": "string"
           }
         },
@@ -5536,6 +5527,162 @@
           "name"
         ],
         "title": "RenameVPCRequest",
+        "type": "object"
+      },
+      "ReservedTechnicalDomain": {
+        "properties": {
+          "attached": {
+            "title": "Attached",
+            "type": "boolean"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "attached"
+        ],
+        "title": "ReservedTechnicalDomain",
+        "type": "object"
+      },
+      "RestoreTechnicalDomainRequest": {
+        "properties": {
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain"
+        ],
+        "title": "RestoreTechnicalDomainRequest",
+        "type": "object"
+      },
+      "StatusResponse": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "StatusResponse",
+        "type": "object"
+      },
+      "TechnicalDomainPolicyResponse": {
+        "properties": {
+          "eligible_primary_domain_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Eligible Primary Domain Ids",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "serve",
+              "redirect"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "noindex": {
+            "title": "Noindex",
+            "type": "boolean"
+          },
+          "primary_domain_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Domain Id"
+          },
+          "redirect_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redirect Domain"
+          },
+          "reservations": {
+            "deprecated": true,
+            "description": "Always empty; detached names are reusable.",
+            "items": {
+              "$ref": "#/components/schemas/ReservedTechnicalDomain"
+            },
+            "title": "Reservations",
+            "type": "array"
+          },
+          "unready_primary_domain_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unready Primary Domain Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "primary_domain_id",
+          "noindex",
+          "redirect_domain",
+          "eligible_primary_domain_ids"
+        ],
+        "title": "TechnicalDomainPolicyResponse",
+        "type": "object"
+      },
+      "TechnicalDomainPolicyUpdate": {
+        "properties": {
+          "mode": {
+            "description": "Serve Production or explicitly redirect. noindex is a legacy alias for serve.",
+            "enum": [
+              "serve",
+              "noindex",
+              "redirect"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "primary_domain_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Domain Id"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "TechnicalDomainPolicyUpdate",
         "type": "object"
       },
       "UpdateKafkaAllowlistRequest": {
@@ -18972,6 +19119,193 @@
         ]
       }
     },
+    "/projects/{project_id}/apps/{app_id}/domain-policy": {
+      "get": {
+        "operationId": "apps_get_domain_policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalDomainPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get technical domain indexing and redirect policy",
+        "tags": [
+          "apps"
+        ]
+      },
+      "patch": {
+        "operationId": "apps_set_domain_policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TechnicalDomainPolicyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalDomainPolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Set technical domain indexing and redirect policy",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/projects/{project_id}/apps/{app_id}/domain-policy/restore": {
+      "post": {
+        "deprecated": true,
+        "operationId": "apps_restore_technical_domain",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreTechnicalDomainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1AppDomain"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Legacy alias for normal domain allocation",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
     "/projects/{project_id}/apps/{app_id}/domains": {
       "get": {
         "operationId": "apps_list_domains",
@@ -25322,6 +25656,139 @@
         ]
       }
     },
+    "/projects/{project_id}/vms/{vm_id}/interfaces": {
+      "post": {
+        "description": "Attach a separate VPC NIC to a stopped VM in the same account and region.",
+        "operationId": "vms_attach_vpc_interface",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachVPCInterfaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachInterfaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Attach Vpc Interface",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/projects/{project_id}/vms/{vm_id}/interfaces/{interface_id}": {
+      "delete": {
+        "description": "Detach a secondary VPC NIC. The primary route and floating IP are protected.",
+        "operationId": "vms_detach_vpc_interface",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "interface_id",
+            "required": true,
+            "schema": {
+              "title": "Interface Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Detach Vpc Interface",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
     "/projects/{project_id}/vms/{vm_id}/restart": {
       "post": {
         "operationId": "vms_restart_vm",
@@ -27172,6 +27639,121 @@
           }
         ],
         "summary": "Delete a VM backup",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/interfaces": {
+      "post": {
+        "description": "Attach a separate VPC NIC to a stopped VM in the same account and region.",
+        "operationId": "vms_attach_vpc_interface_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachVPCInterfaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachInterfaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Attach Vpc Interface By Id",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/interfaces/{interface_id}": {
+      "delete": {
+        "description": "Detach a secondary VPC NIC. The primary route and floating IP are protected.",
+        "operationId": "vms_detach_vpc_interface_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "interface_id",
+            "required": true,
+            "schema": {
+              "title": "Interface Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Detach Vpc Interface By Id",
         "tags": [
           "vms"
         ]

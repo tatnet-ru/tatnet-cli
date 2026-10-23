@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -39,6 +41,7 @@ func newVMCommand(env *Env) *cobra.Command {
 		vmPowerCommand(env, "stop", "Выключить ВМ", "vms_stop_vm"),
 		vmPowerCommand(env, "restart", "Перезагрузить ВМ", "vms_restart_vm"),
 		vmBackupCommand(env),
+		vmInterfaceCommand(env),
 	)
 	cmd.AddCommand(newProjectImagesCommand(env))
 	return cmd
@@ -499,4 +502,51 @@ func vmBackupPolicyCommand(env *Env) *cobra.Command {
 	cmd.Flags().IntVar(&hour, "hour-utc", 0, "час ежедневного запуска, UTC (0–23)")
 	cmd.Flags().IntVar(&days, "retention-days", 7, "срок хранения автоматических копий (1–365 дней)")
 	return cmd
+}
+
+func vmInterfaceCommand(env *Env) *cobra.Command {
+	parent := &cobra.Command{Use: "interface", Short: "Сетевые интерфейсы ВМ (изменения только на выключенной ВМ)"}
+	var vpc string
+	attach := &cobra.Command{Use: "attach <вм>", Short: "Подключить отдельный интерфейс к VPC своего региона",
+		Annotations: ops("vms_attach_vpc_interface"), Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, project, id, err := env.vmTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			body, err := json.Marshal(map[string]string{"vpc_id": vpc})
+			if err != nil {
+				return err
+			}
+			status, _, data, err := env.rawRequest(cmd, http.MethodPost, "/projects/"+url.PathEscape(project)+"/vms/"+url.PathEscape(id)+"/interfaces", body, nil)
+			if err != nil {
+				return err
+			}
+			result, err := decode(status, data, nil)
+			if err != nil {
+				return err
+			}
+			return env.Printer.Object(result, []output.Column{output.Col("статус", "status"), output.Col("интерфейс", "interface_id")})
+		}}
+	attach.Flags().StringVar(&vpc, "vpc", "", "UUID VPC того же аккаунта и региона")
+	_ = attach.MarkFlagRequired("vpc")
+	detach := &cobra.Command{Use: "detach <вм> <interface-id>", Short: "Отключить дополнительный VPC-интерфейс",
+		Annotations: ops("vms_detach_vpc_interface"), Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, project, id, err := env.vmTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			status, _, data, err := env.rawRequest(cmd, http.MethodDelete, "/projects/"+url.PathEscape(project)+"/vms/"+url.PathEscape(id)+"/interfaces/"+url.PathEscape(args[1]), nil, nil)
+			if err != nil {
+				return err
+			}
+			result, err := decode(status, data, nil)
+			if err != nil {
+				return err
+			}
+			return env.Printer.Object(result, []output.Column{output.Col("статус", "status")})
+		}}
+	parent.AddCommand(attach, detach)
+	return parent
 }
