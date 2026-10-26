@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.9
-	github.com/tatnet-ru/tatnet-go v0.16.1
+	github.com/tatnet-ru/tatnet-go v0.16.3-0.20261026052052-40511ab32f40
 	golang.org/x/term v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 )
