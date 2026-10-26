@@ -10665,6 +10665,259 @@
         "title": "VMBackupPolicyResponse",
         "type": "object"
       },
+      "VMFormPlanResponse": {
+        "properties": {
+          "billing_plan_group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Plan Group Id"
+          },
+          "billing_plan_group_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Plan Group Name"
+          },
+          "custom_disk_max_gb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Disk Max Gb"
+          },
+          "disk_max_gb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disk Max Gb"
+          },
+          "disk_price_per_gb": {
+            "title": "Disk Price Per Gb",
+            "type": "number"
+          },
+          "disk_size": {
+            "title": "Disk Size",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_archived": {
+            "title": "Is Archived",
+            "type": "boolean"
+          },
+          "mem": {
+            "title": "Mem",
+            "type": "integer"
+          },
+          "mem_max_mb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mem Max Mb"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price_per_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Day"
+          },
+          "price_per_hour": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Hour"
+          },
+          "price_per_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Month"
+          },
+          "ram_price_per_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Price Per Day"
+          },
+          "ram_price_per_hour": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Price Per Hour"
+          },
+          "ram_price_per_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Price Per Month"
+          },
+          "suitable_for": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Suitable For",
+            "type": "array"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "vcpu": {
+            "title": "Vcpu",
+            "type": "integer"
+          },
+          "vcpu_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcpu Max"
+          },
+          "vcpu_price_per_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcpu Price Per Day"
+          },
+          "vcpu_price_per_hour": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcpu Price Per Hour"
+          },
+          "vcpu_price_per_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vcpu Price Per Month"
+          },
+          "vcpu_steps": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Vcpu Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "vcpu",
+          "mem",
+          "disk_size",
+          "is_archived",
+          "billing_plan_group_id",
+          "billing_plan_group_name",
+          "price_per_month",
+          "price_per_day",
+          "price_per_hour",
+          "disk_max_gb",
+          "disk_price_per_gb"
+        ],
+        "title": "VMFormPlanResponse",
+        "type": "object"
+      },
+      "VMFormPlansListResponse": {
+        "properties": {
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/VMFormPlanResponse"
+            },
+            "title": "Plans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plans"
+        ],
+        "title": "VMFormPlansListResponse",
+        "type": "object"
+      },
       "VMStartRequest": {
         "description": "Optional renewal confirmation supplied when starting an expired VM.",
         "properties": {
@@ -27754,6 +28007,82 @@
           }
         ],
         "summary": "List VMs in a project",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/plans": {
+      "get": {
+        "description": "Active, non-archived plans with UUIDs accepted by VM creation.\n\nRequires the `vm:read` action ceiling. This is a shared product catalog,\nindependent of project allowlists. `mem` is MiB, disk sizes are GiB,\nprices are RUB. `billing_plan_group_name` and `tags` identify the CPU\nfamily (for example Standard CPU). Omit cluster_id for all regions.",
+        "operationId": "vms_list_plans",
+        "parameters": [
+          {
+            "description": "Region UUID; only plans compatible with its active node tags",
+            "in": "query",
+            "name": "cluster_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Region UUID; only plans compatible with its active node tags",
+              "title": "Cluster Id"
+            }
+          },
+          {
+            "description": "Product the plan is offered for",
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "default": "vm",
+              "description": "Product the plan is offered for",
+              "enum": [
+                "vm",
+                "k8s",
+                "db",
+                "lb"
+              ],
+              "title": "Role",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMFormPlansListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List available VM plans",
         "tags": [
           "vms"
         ]
