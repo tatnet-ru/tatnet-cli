@@ -46,6 +46,7 @@ func newPGCommand(env *Env) *cobra.Command {
 		pgParametersCommand(env),
 		pgPlanCommand(env),
 		pgTopologyCommand(env),
+		pgReadReplicasCommand(env),
 		pgAllowlistCommand(env),
 		pgResetPasswordCommand(env),
 		pgNodeCommand(env),
@@ -129,6 +130,9 @@ func pgGetCommand(env *Env) *cobra.Command {
 			if err := env.Printer.Object(v, append(pgColumns,
 				output.Col("dns", "endpoint_dns"),
 				output.Col("read-хост", "read_host"),
+				output.Col("read-порт", "read_port"),
+				output.Col("реплик чтения", "read_replica_count"),
+				output.Col("реплики в работе", "read_replicas_pending"),
 				output.Col("список ip", "ip_allowlist"),
 				output.Col("параметры применены", "parameters_applied"),
 				output.Col("нужен перезапуск", "pending_restart"),
@@ -160,6 +164,7 @@ func pgCreateCommand(env *Env) *cobra.Command {
 		name, plan, version, topology  string
 		cluster, vpc, database, dbUser string
 		allowlist                      []string
+		readReplicas                   int
 	)
 	cmd := &cobra.Command{
 		Use:         "create",
@@ -176,15 +181,16 @@ func pgCreateCommand(env *Env) *cobra.Command {
 				return err
 			}
 			v, err := call(c.PostgresCreateClusterWithResponse(cmd.Context(), project, tatnet.CreatePgClusterRequest{
-				Name:        name,
-				PlanId:      plan,
-				PgVersion:   optStr(cmd, "version", version),
-				Topology:    optStr(cmd, "topology", topology),
-				ClusterId:   optStr(cmd, "region", cluster),
-				VpcId:       optStr(cmd, "vpc", vpc),
-				Database:    optStr(cmd, "database", database),
-				DbUser:      optStr(cmd, "db-user", dbUser),
-				IpAllowlist: optStrSlice(cmd, "allow", allowlist),
+				Name:             name,
+				PlanId:           plan,
+				ReadReplicaCount: optInt(cmd, "read-replicas", readReplicas),
+				PgVersion:        optStr(cmd, "version", version),
+				Topology:         optStr(cmd, "topology", topology),
+				ClusterId:        optStr(cmd, "region", cluster),
+				VpcId:            optStr(cmd, "vpc", vpc),
+				Database:         optStr(cmd, "database", database),
+				DbUser:           optStr(cmd, "db-user", dbUser),
+				IpAllowlist:      optStrSlice(cmd, "allow", allowlist),
 			}))
 			if err != nil {
 				return err
@@ -203,6 +209,7 @@ func pgCreateCommand(env *Env) *cobra.Command {
 	f.StringVar(&topology, "topology", "", "топология: single или ha")
 	f.StringVar(&cluster, "region", "", "id региона")
 	f.StringVar(&vpc, "vpc", "", "id приватной сети (кластер получит адрес в ней)")
+	f.IntVar(&readReplicas, "read-replicas", 0, "число выделенных асинхронных реплик чтения (0–5)")
 	f.StringVar(&database, "database", "", "имя базы")
 	f.StringVar(&dbUser, "db-user", "", "имя владельца базы")
 	f.StringSliceVar(&allowlist, "allow", nil, "разрешённые CIDR (можно повторять)")
@@ -720,4 +727,29 @@ func fieldItems(v any, name string) []any {
 	}
 	arr, _ := m[name].([]any)
 	return arr
+}
+
+func pgReadReplicasCommand(env *Env) *cobra.Command {
+	var count int
+	cmd := &cobra.Command{
+		Use: "read-replicas <кластер>", Short: "Задать число отдельных асинхронных реплик чтения (0–5)",
+		Annotations: ops("postgres_change_read_replicas"), Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if count < 0 || count > 5 {
+				return fmt.Errorf("число реплик должно быть от 0 до 5")
+			}
+			c, project, id, err := env.pgTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			value, err := call(c.PostgresChangeReadReplicasWithResponse(cmd.Context(), project, id, tatnet.ChangePgReadReplicasRequest{ReadReplicaCount: count}))
+			if err != nil {
+				return err
+			}
+			return env.Printer.Object(value, append(pgColumns, output.Col("реплик чтения", "read_replica_count"), output.Col("read-хост", "read_host"), output.Col("read-порт", "read_port")))
+		},
+	}
+	cmd.Flags().IntVar(&count, "count", 0, "число оплачиваемых реплик чтения; 0 — удалить реплики")
+	_ = cmd.MarkFlagRequired("count")
+	return cmd
 }

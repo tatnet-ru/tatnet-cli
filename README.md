@@ -403,3 +403,14 @@ tatnet vm interface attach <vm> --vpc <vpc-id>
 tatnet vm interface detach <vm> <interface-id>
 ```
 При создании повторяйте `--interface type=vpc,vpc_id=<id>` для каждой VPC.
+
+### Реплики PostgreSQL
+
+`tatnet pg read-replicas <кластер> --count 1` добавляет выделенную оплачиваемую
+асинхронную реплику; `--count 0` удаляет реплики. HA настраивается отдельно.
+Проверяйте `read_replicas_pending`, `read_host`, `read_port` и лаг узлов через
+`tatnet pg get <кластер> -o json`. При создании доступен `--read-replicas`.
+
+Обновлённый контракт также предоставляет управление подпиской ВМ:
+`tatnet vm subscription get <ВМ>` и `tatnet vm subscription update <ВМ>
+--period-type 1m --auto-renew=false`. Период календарного месяца — `1m`.

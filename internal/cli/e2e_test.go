@@ -103,6 +103,18 @@ func (f *fakeAPI) handler() http.Handler {
 			f.lastBody = body
 			writeJSON(w, map[string]any{"id": "db-000", "name": "main",
 				"project_id": "11111111-1111-1111-1111-111111111111", "status": "resizing"})
+		case strings.HasSuffix(r.URL.Path, "/pg-clusters/db-000/read-replicas") && r.Method == http.MethodPut:
+			var body map[string]any
+			json.NewDecoder(r.Body).Decode(&body)
+			f.lastBody = body
+			writeJSON(w, map[string]any{"id": "db-000", "read_replica_count": body["read_replica_count"], "read_host": "db.pg.test", "read_port": 5433, "read_replicas_pending": true})
+		case strings.HasSuffix(r.URL.Path, "/subscription") && r.Method == http.MethodGet:
+			writeJSON(w, map[string]any{"period_type": "1h", "auto_renew": true})
+		case strings.HasSuffix(r.URL.Path, "/subscription") && r.Method == http.MethodPatch:
+			var body map[string]any
+			json.NewDecoder(r.Body).Decode(&body)
+			f.lastBody = body
+			writeJSON(w, body)
 		case strings.HasSuffix(r.URL.Path, "/stop"):
 			writeJSON(w, map[string]any{"status": "stopping", "message": "принято"})
 		case r.URL.Path == "/vpcs":
@@ -539,5 +551,40 @@ func TestE2EAppUpdateImage(t *testing.T) {
 	}
 	if !strings.Contains(out, img) {
 		t.Fatalf("новый образ не выведен:\n%s", out)
+	}
+}
+
+func TestE2EPostgresReadReplicas(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+	out, _, err := run(t, srv, "pg", "read-replicas", "main", "--count", "2", "-o", "json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if api.lastBody["read_replica_count"] != float64(2) || !strings.Contains(out, "read_replicas_pending") {
+		t.Fatalf("lost desired count or readiness: %s", out)
+	}
+	_, _, err = run(t, srv, "pg", "read-replicas", "main", "--count", "6")
+	if err == nil {
+		t.Fatal("invalid count accepted")
+	}
+}
+
+func TestE2EVmSubscriptionPreservesFalseAndCalendarPeriod(t *testing.T) {
+	api := &fakeAPI{t: t, vms: 1}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+	if _, _, err := run(t, srv, "vm", "subscription", "get", "web-0"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := run(t, srv, "vm", "subscription", "update", "web-0", "--period-type", "1m", "--auto-renew=false"); err != nil {
+		t.Fatal(err)
+	}
+	if api.lastBody["period_type"] != "1m" || api.lastBody["auto_renew"] != false {
+		t.Fatalf("subscription patch: %v", api.lastBody)
+	}
+	if _, _, err := run(t, srv, "vm", "subscription", "update", "web-0", "--period-type", "30d"); err == nil {
+		t.Fatal("invalid period accepted")
 	}
 }

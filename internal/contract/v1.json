@@ -405,6 +405,21 @@
         "title": "ChangePgPlanRequest",
         "type": "object"
       },
+      "ChangePgReadReplicasRequest": {
+        "properties": {
+          "read_replica_count": {
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Read Replica Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "read_replica_count"
+        ],
+        "title": "ChangePgReadReplicasRequest",
+        "type": "object"
+      },
       "ChangePgTopologyRequest": {
         "description": "Смена топологии: single ↔ ha. Рост — без простоя (реплика и witness\nдобавляются к живому кластеру), сжатие — с переключением лидера, если\nон сидит на выводимой реплике.",
         "properties": {
@@ -597,6 +612,13 @@
           "plan_id": {
             "title": "Plan Id",
             "type": "string"
+          },
+          "read_replica_count": {
+            "default": 0,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Read Replica Count",
+            "type": "integer"
           },
           "restore_from": {
             "anyOf": [
@@ -2775,6 +2797,11 @@
             ],
             "title": "Port"
           },
+          "preserve_client_ip": {
+            "default": false,
+            "title": "Preserve Client Ip",
+            "type": "boolean"
+          },
           "protocol": {
             "title": "Protocol",
             "type": "string"
@@ -2793,6 +2820,13 @@
             "default": 0,
             "title": "Slow Start Seconds",
             "type": "integer"
+          },
+          "source_cidrs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Cidrs",
+            "type": "array"
           },
           "stickiness": {
             "$ref": "#/components/schemas/LBStickinessSpec"
@@ -2863,6 +2897,11 @@
             ],
             "title": "Port"
           },
+          "preserve_client_ip": {
+            "default": false,
+            "title": "Preserve Client Ip",
+            "type": "boolean"
+          },
           "protocol": {
             "enum": [
               "http",
@@ -2895,6 +2934,14 @@
             "minimum": 0.0,
             "title": "Slow Start Seconds",
             "type": "integer"
+          },
+          "source_cidrs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Source Cidrs",
+            "type": "array"
           },
           "stickiness": {
             "$ref": "#/components/schemas/LBStickinessSpec"
@@ -4432,6 +4479,27 @@
             ],
             "title": "Read Host"
           },
+          "read_port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Port"
+          },
+          "read_replica_count": {
+            "default": 0,
+            "title": "Read Replica Count",
+            "type": "integer"
+          },
+          "read_replicas_pending": {
+            "default": false,
+            "title": "Read Replicas Pending",
+            "type": "boolean"
+          },
           "region_cluster_id": {
             "title": "Region Cluster Id",
             "type": "string"
@@ -4493,6 +4561,11 @@
             "default": false,
             "title": "Topology Change Pending",
             "type": "boolean"
+          },
+          "version_capabilities": {
+            "additionalProperties": true,
+            "title": "Version Capabilities",
+            "type": "object"
           },
           "vpc_id": {
             "anyOf": [
@@ -4725,6 +4798,27 @@
             ],
             "title": "Read Host"
           },
+          "read_port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Port"
+          },
+          "read_replica_count": {
+            "default": 0,
+            "title": "Read Replica Count",
+            "type": "integer"
+          },
+          "read_replicas_pending": {
+            "default": false,
+            "title": "Read Replicas Pending",
+            "type": "boolean"
+          },
           "region_cluster_id": {
             "title": "Region Cluster Id",
             "type": "string"
@@ -4775,6 +4869,11 @@
             "default": false,
             "title": "Topology Change Pending",
             "type": "boolean"
+          },
+          "version_capabilities": {
+            "additionalProperties": true,
+            "title": "Version Capabilities",
+            "type": "object"
           },
           "vpc_id": {
             "anyOf": [
@@ -4910,6 +5009,11 @@
           "project_id": {
             "title": "Project Id",
             "type": "string"
+          },
+          "read_replica_count": {
+            "default": 0,
+            "title": "Read Replica Count",
+            "type": "integer"
           },
           "region_cluster_id": {
             "title": "Region Cluster Id",
@@ -9781,25 +9885,29 @@
           "period_days": {
             "anyOf": [
               {
+                "maximum": 1.0,
+                "minimum": 1.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Payment period in days (e.g. 1)",
+            "description": "Daily subscription: only 1 is supported. For a month use period_months=1, not period_days=30.",
             "title": "Period Days"
           },
           "period_months": {
             "anyOf": [
               {
+                "maximum": 12.0,
+                "minimum": 1.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Payment period in months (1, 3, 6, 12)",
+            "description": "Calendar payment period in months: 1, 3, 6, or 12. Mutually exclusive with period_days.",
             "title": "Period Months"
           },
           "ssh_key_ids": {
@@ -9959,6 +10067,104 @@
           "mac"
         ],
         "title": "V1VMInterfaceOut",
+        "type": "object"
+      },
+      "V1VMSubscription": {
+        "properties": {
+          "amount_per_period": {
+            "title": "Amount Per Period",
+            "type": "string"
+          },
+          "auto_renew": {
+            "title": "Auto Renew",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "next_charge_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Charge At"
+          },
+          "paid_through_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Through At"
+          },
+          "period_type": {
+            "title": "Period Type",
+            "type": "string"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_id",
+          "period_type",
+          "amount_per_period",
+          "currency",
+          "status",
+          "auto_renew"
+        ],
+        "title": "V1VMSubscription",
+        "type": "object"
+      },
+      "V1VMSubscriptionUpdate": {
+        "properties": {
+          "auto_renew": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Renew"
+          },
+          "period_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "1h",
+                  "1d",
+                  "1m",
+                  "3m",
+                  "6m",
+                  "12m"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Type"
+          }
+        },
+        "title": "V1VMSubscriptionUpdate",
         "type": "object"
       },
       "V1Volume": {
@@ -18241,6 +18447,63 @@
         ]
       }
     },
+    "/pg-clusters/{cluster_id}/read-replicas": {
+      "put": {
+        "operationId": "postgres_change_read_replicas_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePgReadReplicasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Set dedicated asynchronous read replicas",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
     "/pg-clusters/{cluster_id}/replace-nodes": {
       "post": {
         "description": "Marks every live node whose VM is not on the newest ready image build in\nthe region. Replacements run one at a time — replicas, leader, witness — and\nthe database stays reachable throughout. ``requested: 0`` means every node\nis already current.",
@@ -24144,6 +24407,72 @@
         ]
       }
     },
+    "/projects/{project_id}/pg-clusters/{cluster_id}/read-replicas": {
+      "put": {
+        "operationId": "postgres_change_read_replicas",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePgReadReplicasRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PgClusterDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Set dedicated asynchronous read replicas",
+        "tags": [
+          "postgres"
+        ]
+      }
+    },
     "/projects/{project_id}/pg-clusters/{cluster_id}/replace-nodes": {
       "post": {
         "description": "Marks every live node whose VM is not on the newest ready image build in\nthe region. Replacements run one at a time — replicas, leader, witness — and\nthe database stays reachable throughout. ``requested: 0`` means every node\nis already current.",
@@ -26010,6 +26339,127 @@
           }
         ],
         "summary": "Stop a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/projects/{project_id}/vms/{vm_id}/subscription": {
+      "get": {
+        "operationId": "vms_get_vm_subscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1VMSubscription"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Read a VM subscription",
+        "tags": [
+          "vms"
+        ]
+      },
+      "patch": {
+        "description": "Set the desired period and/or automatic renewal. Repeating the same\nsettings is a no-op. A period change refunds unused prepaid time as bonus\ncredit and charges the server-priced new period. Insufficient funds: 402.\nAn expired subscription must be renewed before changing its period.\nAuto-renewal alone neither charges nor starts a stopped VM.",
+        "operationId": "vms_patch_vm_subscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1VMSubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1VMSubscription"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a VM subscription without replacing or restarting the VM",
         "tags": [
           "vms"
         ]
@@ -27953,6 +28403,109 @@
           }
         ],
         "summary": "Stop a VM",
+        "tags": [
+          "vms"
+        ]
+      }
+    },
+    "/vms/{vm_id}/subscription": {
+      "get": {
+        "operationId": "vms_get_vm_subscription_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1VMSubscription"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Read a VM subscription",
+        "tags": [
+          "vms"
+        ]
+      },
+      "patch": {
+        "description": "Set the desired period and/or automatic renewal. Repeating the same\nsettings is a no-op. A period change refunds unused prepaid time as bonus\ncredit and charges the server-priced new period. Insufficient funds: 402.\nAn expired subscription must be renewed before changing its period.\nAuto-renewal alone neither charges nor starts a stopped VM.",
+        "operationId": "vms_patch_vm_subscription_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vm_id",
+            "required": true,
+            "schema": {
+              "title": "Vm Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1VMSubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1VMSubscription"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update a VM subscription without replacing or restarting the VM",
         "tags": [
           "vms"
         ]
