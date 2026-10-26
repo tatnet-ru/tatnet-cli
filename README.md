@@ -125,6 +125,8 @@ tatnet profile set-project прод    # проект по умолчанию �
 
 ```bash
 tatnet vm list
+tatnet vm plans --cluster <region-uuid> -o json  # UUID тарифов, CPU, память в МиБ, цены в рублях
+tatnet vm plans --role k8s                     # тарифы для узлов Kubernetes
 tatnet vm get web-1                       # по имени или hostname, не только по id
 tatnet vm stop web-1
 tatnet vm backup create web-1 --name до-обновления

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
 
@@ -34,6 +35,7 @@ func newVMCommand(env *Env) *cobra.Command {
 	cmd := &cobra.Command{Use: "vm", Aliases: []string{"vms"}, Short: "Виртуальные машины"}
 	cmd.AddCommand(
 		vmListCommand(env),
+		vmPlansCommand(env),
 		vmGetCommand(env),
 		vmCreateCommand(env),
 		vmDeleteCommand(env),
@@ -45,6 +47,51 @@ func newVMCommand(env *Env) *cobra.Command {
 		vmInterfaceCommand(env),
 	)
 	cmd.AddCommand(newProjectImagesCommand(env))
+	return cmd
+}
+
+func vmPlansCommand(env *Env) *cobra.Command {
+	var cluster, role string
+	cmd := &cobra.Command{
+		Use: "plans", Short: "Доступные тарифы ВМ (память в МиБ, цены в рублях)",
+		Args:        cobra.NoArgs,
+		Annotations: ops("vms_list_plans"),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			params := &tatnet.VmsListPlansParams{Role: ptr(tatnet.VmsListPlansParamsRole(role))}
+			if cluster != "" {
+				id, err := uuid.Parse(cluster)
+				if err != nil {
+					return fmt.Errorf("--cluster: нужен UUID региона: %w", err)
+				}
+				params.ClusterId = &id
+			}
+			c, err := env.Client()
+			if err != nil {
+				return err
+			}
+			v, err := call(c.VmsListPlansWithResponse(cmd.Context(), params))
+			if err != nil {
+				return err
+			}
+			catalog, ok := v.(map[string]any)
+			if !ok {
+				return fmt.Errorf("API вернул некорректный каталог тарифов")
+			}
+			plans, ok := catalog["plans"].([]any)
+			if !ok {
+				return fmt.Errorf("API вернул каталог без списка plans")
+			}
+			return env.Printer.List(plans, []output.Column{
+				output.Col("id", "id"), output.Col("тариф", "name"),
+				output.Col("семейство", "billing_plan_group_name"),
+				output.Col("vcpu", "vcpu"), output.Col("память, МиБ", "mem"),
+				output.Col("диск, ГиБ", "disk_size"), output.Col("руб/мес", "price_per_month"),
+				output.WideCol("руб/час", "price_per_hour"), output.WideCol("теги", "tags"),
+			})
+		},
+	}
+	cmd.Flags().StringVar(&cluster, "cluster", "", "UUID региона (фильтр совместимого оборудования)")
+	cmd.Flags().StringVar(&role, "role", "vm", "назначение тарифа: vm, k8s, db, lb")
 	return cmd
 }
 

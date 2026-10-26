@@ -49,6 +49,8 @@ github.com/tatnet-ru/tatnet-go v0.16.1 h1:eBqCyuTooVv6W8fVRX7kPGMnxspEPDAbFWhDbo
 github.com/tatnet-ru/tatnet-go v0.16.1/go.mod h1:S+8+VKiXIvmoIQgQ3r/J5SHg+XkKsj2zSb0MuoWNq2s=
 github.com/tatnet-ru/tatnet-go v0.16.3-0.20261026052052-40511ab32f40 h1:vZh4tiWcY+xjlYSbmi1InFZtKIgyi2I+dWLON6sxNSk=
 github.com/tatnet-ru/tatnet-go v0.16.3-0.20261026052052-40511ab32f40/go.mod h1:S+8+VKiXIvmoIQgQ3r/J5SHg+XkKsj2zSb0MuoWNq2s=
+github.com/tatnet-ru/tatnet-go v0.16.3-0.20261026130713-0a8b7668d3bb h1:BOZ2sPZYkQoVJGW+fbHE9dAshH37JHrCblU20lx2YvU=
+github.com/tatnet-ru/tatnet-go v0.16.3-0.20261026130713-0a8b7668d3bb/go.mod h1:S+8+VKiXIvmoIQgQ3r/J5SHg+XkKsj2zSb0MuoWNq2s=
 golang.org/x/sys v0.39.0 h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk=
 golang.org/x/sys v0.39.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
 golang.org/x/term v0.36.0 h1:zMPR+aF8gfksFprF/Nc/rd1wRS1EI6nDBGyWAvDzx2Q=
