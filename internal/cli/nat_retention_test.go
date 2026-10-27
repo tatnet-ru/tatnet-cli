@@ -15,6 +15,9 @@ func TestNatDisableRetentionQuery(t *testing.T) {
 				if r.Method != "DELETE" || r.URL.Path != "/vpcs/"+observeProject+"/nat-gateway" {
 					t.Fatalf("unexpected request %s %s", r.Method, r.URL)
 				}
+				if got := r.URL.Query().Get("expected_fip_id"); got != observeApp {
+					t.Errorf("expected_fip_id=%q, want %q", got, observeApp)
+				}
 				want := ""
 				if retain {
 					want = "true"
@@ -27,7 +30,7 @@ func TestNatDisableRetentionQuery(t *testing.T) {
 				writeJSON(w, map[string]any{"enabled": false, "status": "detaching", "fip_id": observeApp})
 			}))
 			defer srv.Close()
-			args := []string{"vpc", "nat", "disable", observeProject, "--yes"}
+			args := []string{"vpc", "nat", "disable", observeProject, "--yes", "--expected-floating-ip", observeApp}
 			if retain {
 				args = append(args, "--retain-ip")
 			}
@@ -39,5 +42,18 @@ func TestNatDisableRetentionQuery(t *testing.T) {
 				t.Fatal("API was not called")
 			}
 		})
+	}
+}
+
+func TestNatDisableReturnsAllocationConflict(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		writeJSON(w, map[string]any{"error": map[string]any{"code": "nat_gateway_changed", "message": "The gateway has changed"}})
+	}))
+	defer srv.Close()
+	_, _, err := run(t, srv, "vpc", "nat", "disable", observeProject, "--yes", "--retain-ip", "--expected-floating-ip", observeApp)
+	if err == nil {
+		t.Fatal("API conflict was ignored")
 	}
 }

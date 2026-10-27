@@ -335,7 +335,7 @@ tatnet floating-ip attach public --interface <vm-interface-id>
 tatnet floating-ip detach public --yes
 tatnet floating-ip delete public --yes
 tatnet vpc nat disable private --yes
-tatnet vpc nat disable private --retain-ip --yes # сохранить IP за аккаунтом
+tatnet vpc nat disable private --retain-ip --expected-floating-ip <id> --yes # сохранить ожидаемый IP за аккаунтом
 tatnet vpc delete private --yes
 ```
 

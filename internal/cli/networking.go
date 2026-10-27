@@ -102,6 +102,7 @@ func newVPCCommand(e *Env) *cobra.Command {
 	var fip string
 	var disableYes bool
 	var retainIP bool
+	var expectedFIP string
 	enable := networkCommand(e, "enable <сеть>", "Включить NAT", "networking_enable_nat_gateway", 1, []output.Column{output.Col("статус", "status"), output.Col("адрес", "address"), output.Col("fip", "fip_id")}, func(cmd *cobra.Command, c *tatnet.ClientWithResponses, a []string) (any, error) {
 		id, err := e.vpcID(cmd.Context(), a[0])
 		if err != nil {
@@ -123,10 +124,15 @@ func newVPCCommand(e *Env) *cobra.Command {
 			return err
 		}
 		var editors []tatnet.RequestEditorFn
-		if retainIP {
+		if retainIP || expectedFIP != "" {
 			editors = append(editors, func(_ context.Context, r *http.Request) error {
 				query := r.URL.Query()
-				query.Set("retain_ip", "true")
+				if retainIP {
+					query.Set("retain_ip", "true")
+				}
+				if expectedFIP != "" {
+					query.Set("expected_fip_id", expectedFIP)
+				}
 				r.URL.RawQuery = query.Encode()
 				return nil
 			})
@@ -140,6 +146,7 @@ func newVPCCommand(e *Env) *cobra.Command {
 		return e.Printer.Message("NAT выключен.")
 	}}
 	disable.Flags().BoolVar(&retainIP, "retain-ip", false, "Сохранить публичный IP за аккаунтом (адрес продолжает тарифицироваться)")
+	disable.Flags().StringVar(&expectedFIP, "expected-floating-ip", "", "Выключить только шлюз с этим floating IP; при замене адреса API вернёт 409")
 	addYes(disable, &disableYes)
 	nat.AddCommand(enable, disable)
 	reserved := &cobra.Command{Use: "reserved-ip", Short: "Резервирование адресов в сети"}
