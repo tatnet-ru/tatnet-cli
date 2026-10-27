@@ -8,6 +8,10 @@
 виртуальные машины, приложения, базы Postgres и Valkey, DNS, объектное
 хранилище, SSH-ключи, VPC, NAT и плавающие IP.
 
+`tatnet app update <приложение> --branch main` меняет Git-ветку будущих
+сборок и автодеплоя. Требуется `app:update`. Чтобы выкатить выбранную ветку,
+отдельно выполните `tatnet app deploy <приложение>`.
+
 Managed Kafka: `tatnet kafka regions` показывает почасовые ставки и процент
 управления; `tatnet --project <id> kafka get <cluster-id>` — стоимость часа,
 управление и прогноз за 730 часов. Оплата: VM + 30% за управление, IPv4 и
@@ -331,12 +335,17 @@ tatnet floating-ip attach public --interface <vm-interface-id>
 tatnet floating-ip detach public --yes
 tatnet floating-ip delete public --yes
 tatnet vpc nat disable private --yes
+tatnet vpc nat disable private --retain-ip --expected-floating-ip <id> --yes # сохранить ожидаемый IP за аккаунтом
 tatnet vpc delete private --yes
 ```
 
 Сеть выбирается по UUID или точному имени; при одинаковых именах нужно
 указать UUID. Плавающий IP можно выбрать по UUID, имени или адресу.
 Эти ресурсы принадлежат аккаунту и не требуют `--project`.
+
+`nat disable --retain-ip` сохраняет адрес и его тарификацию. Перед повторным
+`nat enable --floating-ip <fip-id>` дождитесь статуса `available` у адреса
+через `tatnet floating-ip get <fip-id>`. Без флага адрес освобождается.
 
 ## Инференс
 
