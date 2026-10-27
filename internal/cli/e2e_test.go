@@ -554,6 +554,24 @@ func TestE2EAppUpdateImage(t *testing.T) {
 	}
 }
 
+func TestE2EAppUpdateBranchWithoutDeploy(t *testing.T) {
+	api := &fakeAPI{t: t}
+	srv := httptest.NewServer(api.handler())
+	defer srv.Close()
+	_, _, err := run(t, srv, "app", "update", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "--branch", "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(api.lastBody) != 1 || api.lastBody["branch"] != "main" {
+		t.Fatalf("unexpected branch PATCH: %v", api.lastBody)
+	}
+	for _, req := range api.requests {
+		if strings.HasPrefix(req, "POST ") {
+			t.Fatalf("branch change must not deploy: %v", api.requests)
+		}
+	}
+}
+
 func TestE2EPostgresReadReplicas(t *testing.T) {
 	api := &fakeAPI{t: t}
 	srv := httptest.NewServer(api.handler())
