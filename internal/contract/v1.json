@@ -29532,7 +29532,7 @@
     },
     "/vpcs/{vpc_id}/nat-gateway": {
       "delete": {
-        "description": "Remove the SNAT; the gateway's address is released automatically once\nthe region confirms (`202`, `status: detaching`).",
+        "description": "Remove the SNAT; the gateway's address is released automatically once\nthe region confirms (`202`, `status: detaching`). With `retain_ip=true`,\nkeep the address allocated and billable; wait until the floating IP is\n`available`, then reuse its `fip_id` when enabling NAT.",
         "operationId": "networking_disable_nat_gateway",
         "parameters": [
           {
@@ -29561,6 +29561,18 @@
               ],
               "description": "Disable only this floating IP allocation; a replaced gateway returns 409 nat_gateway_changed.",
               "title": "Expected Fip Id"
+            }
+          },
+          {
+            "description": "Keep the floating IP allocated to the account after removing SNAT. It remains billable and can be reused once available.",
+            "in": "query",
+            "name": "retain_ip",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Keep the floating IP allocated to the account after removing SNAT. It remains billable and can be reused once available.",
+              "title": "Retain Ip",
+              "type": "boolean"
             }
           }
         ],

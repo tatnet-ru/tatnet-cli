@@ -2,10 +2,11 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-cli/internal/output"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
-	"net/http"
 )
 
 var vpcColumns = []output.Column{output.Col("имя", "name"), output.Col("id", "id"), output.Col("регион", "cluster_id"), output.Col("подсеть", "subnet"), output.Col("статус", "status"), output.Col("NAT", "nat_gateway.status"), output.WideCol("адрес NAT", "nat_gateway.address")}
@@ -123,21 +124,15 @@ func newVPCCommand(e *Env) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		var editors []tatnet.RequestEditorFn
-		if retainIP || expectedFIP != "" {
-			editors = append(editors, func(_ context.Context, r *http.Request) error {
-				query := r.URL.Query()
-				if retainIP {
-					query.Set("retain_ip", "true")
-				}
-				if expectedFIP != "" {
-					query.Set("expected_fip_id", expectedFIP)
-				}
-				r.URL.RawQuery = query.Encode()
-				return nil
-			})
+		params := &tatnet.NetworkingDisableNatGatewayParams{RetainIp: optBool(cmd, "retain-ip", retainIP)}
+		if expectedFIP != "" {
+			allocationID, err := uuid.Parse(expectedFIP)
+			if err != nil {
+				return fmt.Errorf("invalid --expected-floating-ip UUID: %w", err)
+			}
+			params.ExpectedFipId = &allocationID
 		}
-		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id, nil, editors...)); err != nil {
+		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id, params)); err != nil {
 			return err
 		}
 		if retainIP {
