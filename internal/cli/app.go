@@ -270,8 +270,8 @@ func appCreateCommand(env *Env) *cobra.Command {
 
 func appUpdateCommand(env *Env) *cobra.Command {
 	var (
-		name, predeploy, readiness, vpc, image string
-		replicas, vcpu, memory                 int
+		name, predeploy, readiness, vpc, image, branch string
+		replicas, vcpu, memory                         int
 	)
 	cmd := &cobra.Command{
 		Use:   "update <приложение>",
@@ -282,6 +282,12 @@ func appUpdateCommand(env *Env) *cobra.Command {
 из папки — отказ). Новый образ соберётся при следующем деплое:
 
   tatnet app update web --image ghcr.io/org/web:<sha>
+  tatnet app deploy web
+
+--branch меняет ветку Git-приложения для следующих сборок и автодеплоя.
+Для выката новой ветки отдельно запустите tatnet app deploy:
+
+  tatnet app update web --branch main
   tatnet app deploy web`,
 		Annotations: ops("apps_update_app_route"),
 		Args:        cobra.ExactArgs(1),
@@ -291,6 +297,7 @@ func appUpdateCommand(env *Env) *cobra.Command {
 				return err
 			}
 			v, err := call(c.AppsUpdateAppRouteWithResponse(cmd.Context(), project, id, tatnet.V1AppUpdate{
+				Branch:           optStr(cmd, "branch", branch),
 				Name:             optStr(cmd, "name", name),
 				PredeployCommand: optStr(cmd, "predeploy-command", predeploy),
 				ReadinessPath:    optStr(cmd, "readiness-path", readiness),
@@ -312,6 +319,7 @@ func appUpdateCommand(env *Env) *cobra.Command {
 	f.StringVar(&readiness, "readiness-path", "", "путь проверки готовности")
 	f.StringVar(&vpc, "vpc", "", "id приватной сети")
 	f.StringVar(&image, "image", "", "новый Docker-образ (только у приложений из образа)")
+	f.StringVar(&branch, "branch", "", "ветка Git для следующих сборок и автодеплоя")
 	f.IntVar(&replicas, "replicas", 0, "число реплик")
 	f.IntVar(&vcpu, "vcpu", 0, "vCPU на реплику")
 	f.IntVar(&memory, "memory", 0, "память на реплику, МБ")
