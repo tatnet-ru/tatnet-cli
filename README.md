@@ -425,3 +425,16 @@ tatnet vm interface detach <vm> <interface-id>
 Обновлённый контракт также предоставляет управление подпиской ВМ:
 `tatnet vm subscription get <ВМ>` и `tatnet vm subscription update <ВМ>
 --period-type 1m --auto-renew=false`. Период календарного месяца — `1m`.
+
+### Постоянный публичный IP балансировщика
+
+Выделите Floating IP и передайте его UUID при создании публичного LB:
+
+```bash
+tatnet floating-ip create --cluster <region-id> --name partner-allowlist
+tatnet api /projects/<project-id>/load-balancers -X POST -f name=web -f vpc_id=<vpc-id> -f floating_ip_id=<floating-ip-id>
+```
+
+Адрес остаётся за аккаунтом после удаления LB и продолжает тарифицироваться.
+Перед созданием замены дождитесь полного удаления старого LB и статуса
+`available` у адреса. Без `floating_ip_id` используется автоматический адрес.

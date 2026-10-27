@@ -57,3 +57,15 @@ func TestNatDisableReturnsAllocationConflict(t *testing.T) {
 		t.Fatal("API conflict was ignored")
 	}
 }
+
+func TestNatDisableRejectsInvalidAllocationUUID(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("invalid guard must not reach the API")
+		w.WriteHeader(500)
+	}))
+	defer srv.Close()
+	_, _, err := run(t, srv, "vpc", "nat", "disable", observeProject, "--yes", "--expected-floating-ip", "not-a-uuid")
+	if err == nil {
+		t.Fatal("invalid UUID accepted")
+	}
+}
