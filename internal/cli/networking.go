@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tatnet-ru/tatnet-cli/internal/output"
 	"github.com/tatnet-ru/tatnet-go/tatnet"
+	"net/http"
 )
 
 var vpcColumns = []output.Column{output.Col("имя", "name"), output.Col("id", "id"), output.Col("регион", "cluster_id"), output.Col("подсеть", "subnet"), output.Col("статус", "status"), output.Col("NAT", "nat_gateway.status"), output.WideCol("адрес NAT", "nat_gateway.address")}
@@ -100,6 +101,8 @@ func newVPCCommand(e *Env) *cobra.Command {
 	nat := &cobra.Command{Use: "nat", Short: "NAT-шлюз сети"}
 	var fip string
 	var disableYes bool
+	var retainIP bool
+	var expectedFIP string
 	enable := networkCommand(e, "enable <сеть>", "Включить NAT", "networking_enable_nat_gateway", 1, []output.Column{output.Col("статус", "status"), output.Col("адрес", "address"), output.Col("fip", "fip_id")}, func(cmd *cobra.Command, c *tatnet.ClientWithResponses, a []string) (any, error) {
 		id, err := e.vpcID(cmd.Context(), a[0])
 		if err != nil {
@@ -120,11 +123,30 @@ func newVPCCommand(e *Env) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id, nil)); err != nil {
+		var editors []tatnet.RequestEditorFn
+		if retainIP || expectedFIP != "" {
+			editors = append(editors, func(_ context.Context, r *http.Request) error {
+				query := r.URL.Query()
+				if retainIP {
+					query.Set("retain_ip", "true")
+				}
+				if expectedFIP != "" {
+					query.Set("expected_fip_id", expectedFIP)
+				}
+				r.URL.RawQuery = query.Encode()
+				return nil
+			})
+		}
+		if err = callOK(c.NetworkingDisableNatGatewayWithResponse(cmd.Context(), id, nil, editors...)); err != nil {
 			return err
+		}
+		if retainIP {
+			return e.Printer.Message("NAT выключен. IP сохранён за аккаунтом и продолжает тарифицироваться; дождитесь статуса available перед повторным подключением.")
 		}
 		return e.Printer.Message("NAT выключен.")
 	}}
+	disable.Flags().BoolVar(&retainIP, "retain-ip", false, "Сохранить публичный IP за аккаунтом (адрес продолжает тарифицироваться)")
+	disable.Flags().StringVar(&expectedFIP, "expected-floating-ip", "", "Выключить только шлюз с этим floating IP; при замене адреса API вернёт 409")
 	addYes(disable, &disableYes)
 	nat.AddCommand(enable, disable)
 	reserved := &cobra.Command{Use: "reserved-ip", Short: "Резервирование адресов в сети"}
