@@ -3171,6 +3171,17 @@
             ],
             "title": "Created At"
           },
+          "floating_ip_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floating Ip Id"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -3280,6 +3291,17 @@
               }
             ],
             "title": "Created At"
+          },
+          "floating_ip_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floating Ip Id"
           },
           "id": {
             "title": "Id",
@@ -6172,6 +6194,17 @@
             ],
             "title": "Docker Image"
           },
+          "git_connection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Connection Id"
+          },
           "git_provider": {
             "default": "github",
             "title": "Git Provider",
@@ -6715,6 +6748,20 @@
       "V1AppUpdate": {
         "additionalProperties": false,
         "properties": {
+          "branch": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Git branch for future builds and push-triggered deployments. Does not deploy automatically; only valid for Git apps.",
+            "title": "Branch"
+          },
           "docker_image": {
             "anyOf": [
               {
@@ -7942,6 +7989,28 @@
             ],
             "title": "Last Error"
           },
+          "load_balancer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Balancer Id"
+          },
+          "load_balancer_project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Balancer Project Id"
+          },
           "name": {
             "anyOf": [
               {
@@ -8868,6 +8937,19 @@
                 "type": "null"
               }
             ]
+          },
+          "floating_ip_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reserved public IP allocation in the same account and region; retained after LB deletion",
+            "title": "Floating Ip Id"
           },
           "k8s_cluster_id": {
             "anyOf": [
@@ -12444,7 +12526,7 @@
             "TatNetAPIKey": []
           }
         ],
-        "summary": "Update an app (scale / resources / image)",
+        "summary": "Update an app (scale / resources / image / Git branch)",
         "tags": [
           "apps"
         ]
@@ -19331,7 +19413,7 @@
         ]
       },
       "patch": {
-        "description": "Scale (replica_count) and resize (replica_vcpu / replica_memory_mb) an\napp, or point a Docker-image app at a new image (docker_image). Billing/plan\ngates are shared with the panel route; a resource change creates a\nresource-only revision so app-deployer rolls running replicas to the new\nsize right away. A new image is built on the next deploy.",
+        "description": "Scale (replica_count) and resize (replica_vcpu / replica_memory_mb) an\napp, or point a Docker-image app at a new image (docker_image). Billing/plan\ngates are shared with the panel route; a resource change creates a\nresource-only revision so app-deployer rolls running replicas to the new\nsize right away. A new image or Git branch is built on the next deploy.\nChanging branch also selects which pushes trigger automatic builds.",
         "operationId": "apps_update_app_route",
         "parameters": [
           {
@@ -19390,7 +19472,7 @@
             "TatNetAPIKey": []
           }
         ],
-        "summary": "Update an app (scale / resources / image)",
+        "summary": "Update an app (scale / resources / image / Git branch)",
         "tags": [
           "apps"
         ]
