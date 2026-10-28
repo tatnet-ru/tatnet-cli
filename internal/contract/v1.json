@@ -3156,6 +3156,11 @@
       },
       "LoadBalancerDetailResponse": {
         "properties": {
+          "can_retain_current_ip": {
+            "default": false,
+            "title": "Can Retain Current Ip",
+            "type": "boolean"
+          },
           "config": {
             "$ref": "#/components/schemas/LBConfigResponse"
           },
@@ -3185,6 +3190,11 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "ip_billing_included": {
+            "default": false,
+            "title": "Ip Billing Included",
+            "type": "boolean"
           },
           "mode": {
             "default": "vpc",
@@ -3280,6 +3290,11 @@
       },
       "LoadBalancerResponse": {
         "properties": {
+          "can_retain_current_ip": {
+            "default": false,
+            "title": "Can Retain Current Ip",
+            "type": "boolean"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -3306,6 +3321,11 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "ip_billing_included": {
+            "default": false,
+            "title": "Ip Billing Included",
+            "type": "boolean"
           },
           "mode": {
             "default": "vpc",
@@ -5727,6 +5747,21 @@
         "title": "RestoreTechnicalDomainRequest",
         "type": "object"
       },
+      "RetainLBIPRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_vip": {
+            "description": "The exact current public IPv4; the operation never chooses another IP",
+            "title": "Expected Vip",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_vip"
+        ],
+        "title": "RetainLBIPRequest",
+        "type": "object"
+      },
       "StatusResponse": {
         "properties": {
           "message": {
@@ -7946,6 +7981,11 @@
           "auto_release": {
             "default": false,
             "title": "Auto Release",
+            "type": "boolean"
+          },
+          "billing_included_in_load_balancer": {
+            "default": false,
+            "title": "Billing Included In Load Balancer",
             "type": "boolean"
           },
           "cluster_id": {
@@ -16961,6 +17001,63 @@
         ]
       }
     },
+    "/load-balancers/{lb_id}/retain-ip": {
+      "post": {
+        "operationId": "load_balancers_retain_lb_ip_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetainLBIPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadBalancerDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Retain the current public IPv4 without changing the VIP",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
     "/load-balancers/{lb_id}/target-groups": {
       "post": {
         "operationId": "load_balancers_create_target_group_by_id",
@@ -23520,6 +23617,72 @@
           }
         ],
         "summary": "Replace the CCM-owned LB config (cloud-controller-manager)",
+        "tags": [
+          "load-balancers"
+        ]
+      }
+    },
+    "/projects/{project_id}/load-balancers/{lb_id}/retain-ip": {
+      "post": {
+        "operationId": "load_balancers_retain_lb_ip",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "lb_id",
+            "required": true,
+            "schema": {
+              "title": "Lb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetainLBIPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadBalancerDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Retain the current public IPv4 without changing the VIP",
         "tags": [
           "load-balancers"
         ]
