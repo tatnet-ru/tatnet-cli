@@ -438,3 +438,17 @@ tatnet api /projects/<project-id>/load-balancers -X POST -f name=web -f vpc_id=<
 Адрес остаётся за аккаунтом после удаления LB и продолжает тарифицироваться.
 Перед созданием замены дождитесь полного удаления старого LB и статуса
 `available` у адреса. Без `floating_ip_id` используется автоматический адрес.
+
+
+### Закрепить текущий IP балансировщика
+
+```bash
+tatnet api /projects/<project-id>/load-balancers/<lb-id>/retain-ip \
+  -f expected_vip=198.51.100.42 -o json
+```
+
+Передайте именно текущий IP из карточки LB. Операция не пересоздаёт LB и не
+выбирает новый адрес; при несовпадении `expected_vip` возвращает 409. Ответ
+содержит `floating_ip_id`. До освобождения подписки текущего LB IP оплачивается
+в её составе, затем — отдельно как сохранённый адрес. Для Kubernetes добавьте
+UUID в `tatnet/lb-floating-ip-id` и исходные Helm/GitOps values до пересоздания Service.
