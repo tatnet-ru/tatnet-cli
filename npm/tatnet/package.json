@@ -32,7 +32,7 @@
     "@tatnet/cli-darwin-arm64": "0.0.0-dev",
     "@tatnet/cli-darwin-x64": "0.0.0-dev",
     "@tatnet/cli-linux-arm64": "0.0.0-dev",
-    "@tatnet/cli-linux-x64": "0.0.0-dev",
+    "@tatnet/cli-linux-x64": "0.17.0",
     "@tatnet/cli-win32-arm64": "0.0.0-dev",
     "@tatnet/cli-win32-x64": "0.0.0-dev"
   },
