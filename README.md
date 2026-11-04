@@ -452,3 +452,16 @@ tatnet api /projects/<project-id>/load-balancers/<lb-id>/retain-ip \
 содержит `floating_ip_id`. До освобождения подписки текущего LB IP оплачивается
 в её составе, затем — отдельно как сохранённый адрес. Для Kubernetes добавьте
 UUID в `tatnet/lb-floating-ip-id` и исходные Helm/GitOps values до пересоздания Service.
+### Блочный том приложения
+
+Для backend-аппа с одной репликой в регионе, где включена поддержка томов:
+
+```sh
+tatnet api /projects/PROJECT/volumes/VOLUME/attach -X POST \
+  -f app_id=APP -f mount_path=/data
+tatnet api /projects/PROJECT/volumes/VOLUME/detach -X POST -f app_id=APP
+```
+
+Том должен содержать ext4. Операция не форматирует диск, вызывает перезапуск
+аппа с коротким простоем и сохраняет данные. Проверяйте состояние тома и
+деплоя после запроса; откреплённый том продолжает тарифицироваться до удаления.
