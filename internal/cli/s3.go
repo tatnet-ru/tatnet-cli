@@ -58,7 +58,7 @@ func newS3Command(env *Env) *cobra.Command {
 		s3KeyCommand(env),
 		&cobra.Command{
 			Use:         "usage",
-			Short:       "Занятое место по бакетам",
+			Short:       "Размер бакетов и исходящий трафик за месяц",
 			Annotations: ops("object_storage_get_usage"),
 			Args:        cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
@@ -81,6 +81,8 @@ func newS3Command(env *Env) *cobra.Command {
 					output.Col("бакет", "name"),
 					output.Col("байт", "bytes_stored"),
 					output.Col("объектов", "object_count"),
+					output.Col("исходящий трафик, байт", "egress_bytes_month"),
+					output.Col("месяц UTC", "traffic_month"),
 					output.WideCol("снимок", "snapshot_at"),
 				})
 			},
