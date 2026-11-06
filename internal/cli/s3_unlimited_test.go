@@ -32,3 +32,17 @@ func TestS3CreateHasNoQuota(t *testing.T) {
 		t.Fatalf("retired flag accepted: %v", err)
 	}
 }
+
+func TestS3UsageIncludesMonthlyTraffic(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/object-storage/usage" {
+			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		writeJSON(w, map[string]any{"buckets": []any{map[string]any{"name": "files", "bytes_stored": 1024, "object_count": 2, "egress_bytes_month": 4096, "traffic_month": "2026-11"}}, "total_bytes_stored": 1024, "total_object_count": 2})
+	}))
+	defer srv.Close()
+	out, _, err := run(t, srv, "s3", "usage")
+	if err != nil || !strings.Contains(out, "4096") || !strings.Contains(out, "2026-11") {
+		t.Fatalf("%s %v", out, err)
+	}
+}
