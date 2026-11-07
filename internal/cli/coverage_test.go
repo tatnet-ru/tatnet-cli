@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -128,9 +130,8 @@ func TestDeferredTagsExistInContract(t *testing.T) {
 	}
 }
 
-// Вшитый контракт обязан совпадать с контрактом той версии tatnet-go, на
-// которой собран CLI. Иначе `tatnet api` проверял бы адреса по одному
-// документу, а клиент ходил бы по другому.
+// Весь вшитый контракт должен воспроизводиться из pinned SDK и явного
+// raw-HTTP расширения, включая схемы и параметры, а не только список путей.
 func TestEmbeddedContractMatchesClientModule(t *testing.T) {
 	out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/tatnet-ru/tatnet-go").Output()
 	if err != nil {
@@ -144,10 +145,25 @@ func TestEmbeddedContractMatchesClientModule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("не прочитан контракт клиента: %v", err)
 	}
-	if string(theirs) != string(contract.Raw) {
-		t.Fatal("вшитый контракт разошёлся с контрактом tatnet-go: " +
-			"выполните scripts/sync-contract.sh и пересоберите")
+	extension, err := os.ReadFile(filepath.Join("..", "contract", "supabase-extension.json"))
+	if err != nil {
+		t.Fatal(err)
 	}
+	expected, err := contract.Compose(theirs, extension)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want, got any
+	if err := json.Unmarshal(expected, &want); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(contract.Raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Fatal("CLI contract drift: run scripts/sync-contract.sh")
+	}
+
 }
 
 // Счётчик покрытия — не гейт, а видимая цифра в выводе тестов.

@@ -84,6 +84,7 @@ func NewRootCommand(version string) *cobra.Command {
 		newPGCommand(env),
 		newKafkaCommand(env),
 		newValkeyCommand(env),
+		newSupabaseCommand(env),
 		newSSHKeyCommand(env),
 		newVPCCommand(env),
 		newFloatingIPCommand(env),
