@@ -729,6 +729,35 @@
         "title": "CreateValkeyClusterRequest",
         "type": "object"
       },
+      "Database": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "read_only": {
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "read_only"
+        ],
+        "title": "Database",
+        "type": "object"
+      },
       "DeleteAccepted": {
         "description": "The body of a 202 delete: the row is marked and a region tears the\nresource down over the next minutes.\n\nOne shape for every asynchronous delete in /v1. It was defined twice (in the\nKubernetes and load-balancer modules) while four other 202 deletes declared\nno model at all and returned this exact object anyway — so a generated\nclient got an untyped blob for half of them.",
         "properties": {
@@ -3474,6 +3503,37 @@
         "title": "Page[AppJobRunResponse]",
         "type": "object"
       },
+      "Page_Database_": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Database"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "limit",
+          "offset",
+          "count"
+        ],
+        "title": "Page[Database]",
+        "type": "object"
+      },
       "Page_KafkaClusterResponse_": {
         "properties": {
           "count": {
@@ -5760,6 +5820,174 @@
           "expected_vip"
         ],
         "title": "RetainLBIPRequest",
+        "type": "object"
+      },
+      "SQLError": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "sqlstate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sqlstate"
+          },
+          "statement_index": {
+            "default": 0,
+            "title": "Statement Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "SQLError",
+        "type": "object"
+      },
+      "SQLRequest": {
+        "properties": {
+          "max_rows": {
+            "default": 100,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Max Rows",
+            "type": "integer"
+          },
+          "sql": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Sql",
+            "type": "string"
+          },
+          "timeout_ms": {
+            "default": 30000,
+            "maximum": 30000.0,
+            "minimum": 100.0,
+            "title": "Timeout Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sql"
+        ],
+        "title": "SQLRequest",
+        "type": "object"
+      },
+      "SQLResult": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SQLError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/Statement"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "SQLResult",
+        "type": "object"
+      },
+      "Statement": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "command_tag": {
+            "title": "Command Tag",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "rows_affected": {
+            "title": "Rows Affected",
+            "type": "integer"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command_tag",
+          "rows_affected"
+        ],
+        "title": "Statement",
         "type": "object"
       },
       "StatusResponse": {
@@ -27543,6 +27771,184 @@
         "summary": "Delete an SSH key",
         "tags": [
           "ssh-keys"
+        ]
+      }
+    },
+    "/supabase": {
+      "get": {
+        "operationId": "supabase_list_databases",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Database_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "List accessible managed Supabase databases",
+        "tags": [
+          "supabase"
+        ]
+      }
+    },
+    "/supabase/{database_id}/query": {
+      "post": {
+        "operationId": "supabase_query_database",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Database Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SQLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SQLResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Execute one read-only SQL statement",
+        "tags": [
+          "supabase"
+        ]
+      }
+    },
+    "/supabase/{database_id}/sql": {
+      "post": {
+        "description": "May change or delete data. No superuser authority. Never automatically retry.",
+        "operationId": "supabase_execute_sql",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "database_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Database Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SQLRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SQLResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Execute SQL as the database owner",
+        "tags": [
+          "supabase"
         ]
       }
     },
