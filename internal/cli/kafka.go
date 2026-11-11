@@ -105,6 +105,25 @@ func newKafkaCommand(env *Env) *cobra.Command {
 		}
 		return request(cmd, http.MethodPost, p+"/resume", nil)
 	}})
+	root.AddCommand(&cobra.Command{Use: "reset-password <id>", Short: "Сменить пароль customer; новый пароль возвращается один раз, применение асинхронное", Args: cobra.ExactArgs(1), Annotations: ops("kafka_reset_password"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		return request(cmd, http.MethodPost, p+"/password", nil)
+	}})
+	var metric, timeRange string
+	metrics := &cobra.Command{Use: "metrics <cluster-id> <node-id>", Short: "Метрики VM узла Kafka: CPU, память, диск и сеть", Args: cobra.ExactArgs(2), Annotations: ops("kafka_node_metrics"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		query := url.Values{"metric": {metric}, "range": {timeRange}}
+		return request(cmd, http.MethodGet, p+"/nodes/"+url.PathEscape(args[1])+"/metrics?"+query.Encode(), nil)
+	}}
+	metrics.Flags().StringVar(&metric, "metric", "cpu", "cpu, memory, disk_io, network_io")
+	metrics.Flags().StringVar(&timeRange, "range", "1h", "1h, 6h, 24h, 7d, 30d")
+	root.AddCommand(metrics)
 	var power string
 	canary := &cobra.Command{Use: "canary-power <cluster-id> <node-id>", Short: "Закрытый canary: start/stop узла; оплата продолжается", Args: cobra.ExactArgs(2), Annotations: ops("kafka_canary_node_action"), RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := path(cmd, args[0])

@@ -1217,6 +1217,11 @@
             "title": "Password",
             "type": "string"
           },
+          "password_status": {
+            "default": "unknown",
+            "title": "Password Status",
+            "type": "string"
+          },
           "plan_id": {
             "format": "uuid",
             "title": "Plan Id",
@@ -1409,6 +1414,11 @@
             "title": "Nodes",
             "type": "array"
           },
+          "password_status": {
+            "default": "unknown",
+            "title": "Password Status",
+            "type": "string"
+          },
           "plan_id": {
             "format": "uuid",
             "title": "Plan Id",
@@ -1585,6 +1595,24 @@
           "status"
         ],
         "title": "KafkaNodeResponse",
+        "type": "object"
+      },
+      "KafkaPasswordResetResponse": {
+        "properties": {
+          "applied": {
+            "default": false,
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "KafkaPasswordResetResponse",
         "type": "object"
       },
       "KafkaPlanResponse": {
@@ -3410,6 +3438,52 @@
           "status"
         ],
         "title": "LoadBalancerResponse",
+        "type": "object"
+      },
+      "MetricsResponse": {
+        "properties": {
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "metric",
+          "series"
+        ],
+        "title": "MetricsResponse",
+        "type": "object"
+      },
+      "MetricsSeries": {
+        "properties": {
+          "data": {
+            "items": {
+              "items": {
+                "format": "double",
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "data"
+        ],
+        "title": "MetricsSeries",
         "type": "object"
       },
       "Page_AppJobResponse_": {
@@ -22003,6 +22077,164 @@
           }
         ],
         "summary": "Closed canary node power verification; billing continues",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/nodes/{node_id}/metrics": {
+      "get": {
+        "operationId": "kafka_node_metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": true,
+            "schema": {
+              "enum": [
+                "cpu",
+                "memory",
+                "disk_io",
+                "network_io"
+              ],
+              "title": "Metric",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "default": "1h",
+              "enum": [
+                "1h",
+                "6h",
+                "24h",
+                "7d",
+                "30d"
+              ],
+              "title": "Range",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Node Metrics",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/password": {
+      "post": {
+        "operationId": "kafka_reset_password",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaPasswordResetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Reset Password",
         "tags": [
           "kafka"
         ]
