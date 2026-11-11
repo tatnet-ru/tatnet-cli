@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Обновляет вшитый контракт из версии tatnet-go, на которой собран CLI.
 #
-# Источник правды — контракт, опубликованный в клиенте: CLI ходит его
-# методами, и проверять адреса по другому документу значит проверять не то.
-# Тест TestEmbeddedContractMatchesClientModule следит за расхождением.
+# SDK-backed операции берутся из опубликованного клиента. Явное расширение
+# supabase-extension.json сохраняет raw-HTTP операции до их релиза в SDK.
+# Генератор отклоняет конфликтующие определения; гейт сравнивает ВЕСЬ контракт.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -15,7 +15,7 @@ if [[ -z "$dir" ]]; then
 fi
 
 version="$(go list -m -f '{{.Version}}' github.com/tatnet-ru/tatnet-go)"
-cp "$dir/openapi/v1.json" internal/contract/v1.json
+go run ./scripts/sync-contract "$dir/openapi/v1.json"
 chmod u+w internal/contract/v1.json
 
 ops=$(python3 -c "
