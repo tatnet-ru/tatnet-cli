@@ -4729,6 +4729,16 @@
             ],
             "title": "Status Detail"
           },
+          "storage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PgStorageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "topology": {
             "title": "Topology",
             "type": "string"
@@ -5036,6 +5046,16 @@
               }
             ],
             "title": "Status Detail"
+          },
+          "storage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PgStorageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "topology": {
             "title": "Topology",
@@ -5812,6 +5832,74 @@
           "can_login"
         ],
         "title": "PgRoleResponse",
+        "type": "object"
+      },
+      "PgStorageResponse": {
+        "properties": {
+          "additional_gib_monthly_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additional Gib Monthly Cost"
+          },
+          "allocated_storage_gb": {
+            "title": "Allocated Storage Gb",
+            "type": "integer"
+          },
+          "autoscaling_enabled": {
+            "title": "Autoscaling Enabled",
+            "type": "boolean"
+          },
+          "max_allocated_storage_gb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Allocated Storage Gb"
+          },
+          "nodes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "online_resize_available": {
+            "title": "Online Resize Available",
+            "type": "boolean"
+          },
+          "resize_pending": {
+            "title": "Resize Pending",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "storage_limit_gb": {
+            "title": "Storage Limit Gb",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "allocated_storage_gb",
+          "storage_limit_gb",
+          "autoscaling_enabled",
+          "online_resize_available",
+          "resize_pending",
+          "status"
+        ],
+        "title": "PgStorageResponse",
         "type": "object"
       },
       "PgTopologyResponse": {
