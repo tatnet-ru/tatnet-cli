@@ -1,12 +1,12 @@
 module github.com/tatnet-ru/tatnet-cli
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.9
-	github.com/tatnet-ru/tatnet-go v0.18.0
+	github.com/tatnet-ru/tatnet-go v0.20.0
 	golang.org/x/term v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 )

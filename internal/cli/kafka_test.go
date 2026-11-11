@@ -73,3 +73,30 @@ func TestRRsetDeleteRequiresRevisionAndSendsItToAPI(t *testing.T) {
 		t.Fatalf("delete failed: %v calls=%d", err, called)
 	}
 }
+
+func TestKafkaMetricsAndPasswordUseScopedAPI(t *testing.T) {
+	for _, tc := range []struct {
+		args           []string
+		method, suffix string
+	}{
+		{[]string{"reset-password", "k"}, "POST", "/k/password"},
+		{[]string{"metrics", "k", "n", "--metric", "memory", "--range", "6h"}, "GET", "/k/nodes/n/metrics"},
+	} {
+		t.Run(tc.suffix, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != tc.method || !strings.HasSuffix(r.URL.Path, tc.suffix) || r.Header.Get("Authorization") == "" {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL)
+				}
+				if tc.method == "GET" && (r.URL.Query().Get("metric") != "memory" || r.URL.Query().Get("range") != "6h") {
+					t.Error("metric selection lost")
+				}
+				writeJSON(w, map[string]any{"password": "one-time", "applied": false})
+			}))
+			defer srv.Close()
+			args := append([]string{"--project", "11111111-1111-1111-1111-111111111111", "kafka"}, tc.args...)
+			if _, _, err := run(t, srv, args...); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

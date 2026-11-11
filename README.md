@@ -452,6 +452,10 @@ tatnet api /projects/<project-id>/load-balancers/<lb-id>/retain-ip \
 содержит `floating_ip_id`. До освобождения подписки текущего LB IP оплачивается
 в её составе, затем — отдельно как сохранённый адрес. Для Kubernetes добавьте
 UUID в `tatnet/lb-floating-ip-id` и исходные Helm/GitOps values до пересоздания Service.
+
+### Kafka monitoring and password recovery
+
+Kafka now exposes `GET /projects/{project}/kafka-clusters/{cluster}/nodes/{node}/metrics?metric=cpu&range=1h` (also memory, disk_io, network_io) and `POST /projects/{project}/kafka-clusters/{cluster}/password`. These use the common authenticated /v1 API, cluster permissions and node ownership checks. Password reset returns a generated password once with `applied=false`; wait for cluster `password_status=applied` before updating clients. An empty allowlist closes public client access.
 ### Блочный том приложения
 
 Для backend-аппа с одной репликой в регионе, где включена поддержка томов:
