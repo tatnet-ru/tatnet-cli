@@ -500,3 +500,11 @@ Supabase HTTP operations available before the SDK release; conflicting schemas
 or paths fail regeneration. The compatibility test checks the whole composed
 contract. Once the SDK includes these operations, matching definitions merge
 idempotently and the extension can be retired with the dependency update.
+
+Kafka monitoring: `tatnet kafka health <id>` reads current replication and
+committed-offset group lag. `tatnet kafka history <id> --metric consumer_lag
+--group <name> --range 6h` reads history (`replication` needs no group).
+`tatnet kafka monitoring-config <id> --lag-threshold 10000 --duration-seconds 300`
+sets per-group console warnings; `--disable-lag` disables them. Settings apply
+asynchronously. Unknown lag remains null; lag is an offset distance, not time.
+All commands use the selected project and existing API authorization.
