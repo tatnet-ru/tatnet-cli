@@ -4,7 +4,7 @@ go 1.27.4
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.9
 	github.com/tatnet-ru/tatnet-go v0.21.0
 	golang.org/x/term v0.47.0
