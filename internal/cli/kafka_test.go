@@ -100,3 +100,40 @@ func TestKafkaMetricsAndPasswordUseScopedAPI(t *testing.T) {
 		})
 	}
 }
+
+func TestKafkaHealthHistoryAndConfigPreserveScopeAndUnknown(t *testing.T) {
+	for _, tc := range []struct {
+		args           []string
+		method, suffix string
+	}{
+		{[]string{"health", "k"}, "GET", "/k/monitoring"},
+		{[]string{"history", "k", "--metric", "consumer_lag", "--group", "a&b/λ", "--range", "6h"}, "GET", "/k/monitoring/metrics"},
+		{[]string{"monitoring-config", "k", "--disable-lag"}, "PUT", "/k/monitoring"},
+	} {
+		t.Run(tc.args[0], func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != tc.method || r.URL.Path != "/projects/11111111-1111-1111-1111-111111111111/kafka-clusters"+tc.suffix || r.Header.Get("Authorization") == "" {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL)
+				}
+				if tc.args[0] == "history" && (r.URL.Query().Get("group") != "a&b/λ" || r.URL.Query().Get("range") != "6h") {
+					t.Error("group/range changed")
+				}
+				if r.Method == "PUT" {
+					var b map[string]any
+					if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+						t.Fatal(err)
+					}
+					if b["lag_threshold"] != nil || b["lag_duration_seconds"] != float64(300) {
+						t.Errorf("wrong config %v", b)
+					}
+				}
+				writeJSON(w, map[string]any{"lag": nil, "status": "partial"})
+			}))
+			defer srv.Close()
+			out, _, err := run(t, srv, append([]string{"--project", "11111111-1111-1111-1111-111111111111", "kafka"}, tc.args...)...)
+			if err != nil || !strings.Contains(out, "null") {
+				t.Fatalf("unknown lag lost: %s %v", out, err)
+			}
+		})
+	}
+}

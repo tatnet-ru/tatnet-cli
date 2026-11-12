@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -124,6 +125,50 @@ func newKafkaCommand(env *Env) *cobra.Command {
 	metrics.Flags().StringVar(&metric, "metric", "cpu", "cpu, memory, disk_io, network_io")
 	metrics.Flags().StringVar(&timeRange, "range", "1h", "1h, 6h, 24h, 7d, 30d")
 	root.AddCommand(metrics)
+	root.AddCommand(&cobra.Command{Use: "health <cluster-id>", Short: "Здоровье репликации и lag по подтверждённым offsets", Args: cobra.ExactArgs(1), Annotations: ops("kafka_get_monitoring"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		return request(cmd, http.MethodGet, p+"/monitoring", nil)
+	}})
+	var historyMetric, historyRange, group string
+	history := &cobra.Command{Use: "history <cluster-id>", Short: "История репликации или consumer lag; неизвестные измерения остаются пропусками", Args: cobra.ExactArgs(1), Annotations: ops("kafka_monitoring_metrics"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		query := url.Values{"metric": {historyMetric}, "range": {historyRange}}
+		if cmd.Flags().Changed("group") {
+			query.Set("group", group)
+		}
+		return request(cmd, http.MethodGet, p+"/monitoring/metrics?"+query.Encode(), nil)
+	}}
+	history.Flags().StringVar(&historyMetric, "metric", "replication", "replication или consumer_lag")
+	history.Flags().StringVar(&historyRange, "range", "1h", "1h, 6h, 24h, 7d, 30d")
+	history.Flags().StringVar(&group, "group", "", "точное имя группы для consumer_lag")
+	root.AddCommand(history)
+	var lagThreshold int64
+	var lagDuration int
+	var disableLag bool
+	monitoring := &cobra.Command{Use: "monitoring-config <cluster-id>", Short: "Порог предупреждения lag для каждой группы; применение асинхронное", Args: cobra.ExactArgs(1), Annotations: ops("kafka_update_monitoring"), RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := path(cmd, args[0])
+		if err != nil {
+			return err
+		}
+		if disableLag == cmd.Flags().Changed("lag-threshold") {
+			return fmt.Errorf("укажите ровно один из --lag-threshold или --disable-lag")
+		}
+		var threshold any
+		if !disableLag {
+			threshold = lagThreshold
+		}
+		return request(cmd, http.MethodPut, p+"/monitoring", map[string]any{"lag_threshold": threshold, "lag_duration_seconds": lagDuration})
+	}}
+	monitoring.Flags().Int64Var(&lagThreshold, "lag-threshold", 0, "положительный порог суммарного lag группы")
+	monitoring.Flags().IntVar(&lagDuration, "duration-seconds", 300, "длительность превышения: 60..3600, кратно 60")
+	monitoring.Flags().BoolVar(&disableLag, "disable-lag", false, "выключить предупреждения по lag")
+	root.AddCommand(monitoring)
 	var power string
 	canary := &cobra.Command{Use: "canary-power <cluster-id> <node-id>", Short: "Закрытый canary: start/stop узла; оплата продолжается", Args: cobra.ExactArgs(2), Annotations: ops("kafka_canary_node_action"), RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := path(cmd, args[0])

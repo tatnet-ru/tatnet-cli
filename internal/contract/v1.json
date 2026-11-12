@@ -1544,6 +1544,267 @@
         "title": "KafkaClusterResponse",
         "type": "object"
       },
+      "KafkaConsumerObservation": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaGroupLag"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "status": {
+            "default": "unavailable",
+            "enum": [
+              "ok",
+              "unavailable",
+              "partial",
+              "limited",
+              "paused"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "KafkaConsumerObservation",
+        "type": "object"
+      },
+      "KafkaGroupLag": {
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "lag": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag"
+          },
+          "max_lag": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lag"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "no_offsets",
+              "partial",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaTopicLag"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "group",
+          "state",
+          "status"
+        ],
+        "title": "KafkaGroupLag",
+        "type": "object"
+      },
+      "KafkaMonitoringAlert": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "group": {
+            "default": "",
+            "title": "Group",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "offline",
+              "under_min_isr",
+              "under_replicated",
+              "consumer_lag"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "warning"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "severity",
+          "since",
+          "active"
+        ],
+        "title": "KafkaMonitoringAlert",
+        "type": "object"
+      },
+      "KafkaMonitoringConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "lag_duration_seconds": {
+            "default": 300,
+            "maximum": 3600.0,
+            "minimum": 60.0,
+            "multipleOf": 60.0,
+            "title": "Lag Duration Seconds",
+            "type": "integer"
+          },
+          "lag_threshold": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag Threshold"
+          }
+        },
+        "title": "KafkaMonitoringConfig",
+        "type": "object"
+      },
+      "KafkaMonitoringHistoryResponse": {
+        "properties": {
+          "end": {
+            "format": "double",
+            "title": "End",
+            "type": "number"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "start": {
+            "format": "double",
+            "title": "Start",
+            "type": "number"
+          },
+          "step_seconds": {
+            "exclusiveMinimum": 0.0,
+            "title": "Step Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "metric",
+          "series",
+          "start",
+          "end",
+          "step_seconds"
+        ],
+        "title": "KafkaMonitoringHistoryResponse",
+        "type": "object"
+      },
+      "KafkaMonitoringResponse": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/KafkaMonitoringAlert"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "config": {
+            "$ref": "#/components/schemas/KafkaMonitoringConfig"
+          },
+          "config_applied": {
+            "default": false,
+            "title": "Config Applied",
+            "type": "boolean"
+          },
+          "consumers": {
+            "$ref": "#/components/schemas/KafkaConsumerObservation"
+          },
+          "history_available": {
+            "default": false,
+            "title": "History Available",
+            "type": "boolean"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/KafkaReplicationObservation"
+          },
+          "stale": {
+            "default": true,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "waiting",
+              "fresh",
+              "stale",
+              "paused",
+              "error",
+              "partial"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "config"
+        ],
+        "title": "KafkaMonitoringResponse",
+        "type": "object"
+      },
       "KafkaNodePowerResponse": {
         "properties": {
           "message": {
@@ -1738,6 +1999,121 @@
           "default_version"
         ],
         "title": "KafkaRegionResponse",
+        "type": "object"
+      },
+      "KafkaReplicationObservation": {
+        "properties": {
+          "offline": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offline"
+          },
+          "partitions": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partitions"
+          },
+          "status": {
+            "default": "unavailable",
+            "enum": [
+              "ok",
+              "unavailable",
+              "partial",
+              "limited",
+              "paused"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "under_min_isr": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Under Min Isr"
+          },
+          "under_replicated": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Under Replicated"
+          }
+        },
+        "title": "KafkaReplicationObservation",
+        "type": "object"
+      },
+      "KafkaTopicLag": {
+        "properties": {
+          "lag": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag"
+          },
+          "max_lag": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lag"
+          },
+          "partitions": {
+            "minimum": 0.0,
+            "title": "Partitions",
+            "type": "integer"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "unknown_partitions": {
+            "minimum": 0.0,
+            "title": "Unknown Partitions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topic",
+          "partitions",
+          "unknown_partitions"
+        ],
+        "title": "KafkaTopicLag",
         "type": "object"
       },
       "KafkaTopologyResponse": {
@@ -5660,6 +6036,14 @@
             },
             "title": "Pg Versions",
             "type": "array"
+          },
+          "topologies": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PgTopologyResponse"
+            },
+            "title": "Topologies",
+            "type": "array"
           }
         },
         "required": [
@@ -7638,6 +8022,11 @@
             "title": "Bytes Stored",
             "type": "integer"
           },
+          "egress_bytes_month": {
+            "default": 0,
+            "title": "Egress Bytes Month",
+            "type": "integer"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -7652,6 +8041,11 @@
             "title": "Quota Bytes",
             "type": "null"
           },
+          "request_count_month": {
+            "default": 0,
+            "title": "Request Count Month",
+            "type": "integer"
+          },
           "snapshot_at": {
             "anyOf": [
               {
@@ -7663,6 +8057,18 @@
             ],
             "description": "When the platform last measured this bucket; null if never",
             "title": "Snapshot At"
+          },
+          "traffic_month": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "UTC calendar month, YYYY-MM; counters may arrive with delay",
+            "title": "Traffic Month"
           }
         },
         "required": [
@@ -10189,7 +10595,7 @@
           },
           "ephemeral": {
             "default": false,
-            "description": "Ephemeral VM: billed per second of lifetime at the plan's hourly rate, no prepaid period or subscription; cannot be resized",
+            "description": "Hourly VM without a prepaid subscription. New component leases bill confirmed compute time with a 60-second minimum per start, plus disk and allocated IPv4 independently until released; cannot be resized",
             "title": "Ephemeral",
             "type": "boolean"
           },
@@ -10345,7 +10751,7 @@
           },
           "ephemeral": {
             "default": false,
-            "description": "Ephemeral VM: no prepaid period or subscription. Billed per second of lifetime — from creation to the deletion request — at the plan's hourly rate (plus extra disk and public IP) through an hourly usage meter. Meant for short-lived machines (CI runners, batch jobs). Mutually exclusive with period_months/period_days; cannot be resized; insufficient funds → 402 and no capacity → 503 immediately instead of a queued VM.",
+            "description": "Ephemeral VM: no prepaid period or subscription. Billed per second of confirmed compute time (60-second minimum per start), with disk and allocated IPv4 billed independently until released. Meant for short-lived machines (CI runners, batch jobs). Mutually exclusive with period_months/period_days; cannot be resized; insufficient funds → 402 and no capacity → 503 immediately instead of a queued VM.",
             "title": "Ephemeral",
             "type": "boolean"
           },
@@ -10772,19 +11178,58 @@
       },
       "V1VolumeAttach": {
         "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
+          "mount_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mount Path"
+          },
           "vm_id": {
-            "title": "Vm Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vm Id"
           }
         },
-        "required": [
-          "vm_id"
-        ],
         "title": "V1VolumeAttach",
         "type": "object"
       },
       "V1VolumeAttachment": {
         "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
           "desired_state": {
             "default": "present",
             "title": "Desired State",
@@ -10800,6 +11245,17 @@
               }
             ],
             "title": "Error Detail"
+          },
+          "mount_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mount Path"
           },
           "status": {
             "title": "Status",
@@ -10817,12 +11273,18 @@
             "title": "Target Dev"
           },
           "vm_id": {
-            "title": "Vm Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vm Id"
           }
         },
         "required": [
-          "vm_id",
           "status"
         ],
         "title": "V1VolumeAttachment",
@@ -10873,6 +11335,17 @@
       },
       "V1VolumeDetach": {
         "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
           "force": {
             "default": false,
             "title": "Force",
@@ -18360,6 +18833,20 @@
               "title": "Continuation Token",
               "type": "string"
             }
+          },
+          {
+            "description": "Maximum entries per page",
+            "in": "query",
+            "name": "max_keys",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Maximum entries per page",
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Max Keys",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -22315,6 +22802,236 @@
           }
         ],
         "summary": "Update Allowlist",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/monitoring": {
+      "get": {
+        "operationId": "kafka_get_monitoring",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaMonitoringResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get Monitoring",
+        "tags": [
+          "kafka"
+        ]
+      },
+      "put": {
+        "operationId": "kafka_update_monitoring",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KafkaMonitoringConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaMonitoringResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Update Monitoring",
+        "tags": [
+          "kafka"
+        ]
+      }
+    },
+    "/projects/{project_id}/kafka-clusters/{cluster_id}/monitoring/metrics": {
+      "get": {
+        "operationId": "kafka_monitoring_metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cluster_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": true,
+            "schema": {
+              "enum": [
+                "replication",
+                "consumer_lag"
+              ],
+              "title": "Metric",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "default": "1h",
+              "enum": [
+                "1h",
+                "6h",
+                "24h",
+                "7d",
+                "30d"
+              ],
+              "title": "Range",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaMonitoringHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Monitoring Metrics",
         "tags": [
           "kafka"
         ]
