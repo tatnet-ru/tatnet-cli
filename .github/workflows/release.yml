@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag, for example v0.19.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,9 +20,27 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     steps:
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Expected a version tag such as v0.19.0"
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
+
+      - name: Verify existing tag target
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          actual_sha=$(git rev-parse HEAD)
+          tag_sha=$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")
+          test "$actual_sha" = "$tag_sha"
 
       - uses: actions/setup-go@v7
         with:
@@ -28,6 +52,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}
 
   # Пакеты npm собираются из артефактов, которые только что выложил релиз,
   # поэтому строго после него.
@@ -35,5 +60,5 @@ jobs:
     needs: release
     uses: ./.github/workflows/npm.yml
     with:
-      tag: ${{ github.ref_name }}
+      tag: ${{ inputs.tag || github.ref_name }}
     secrets: inherit
