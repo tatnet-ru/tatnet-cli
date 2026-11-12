@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -19,6 +21,7 @@ var valkeyColumns = []output.Column{
 	output.Col("статус", "status"),
 	output.Col("хост", "endpoint_host"),
 	output.Col("порт", "endpoint_port"),
+	output.Col("TLS", "tls_mode"),
 	output.Col("память", "maxmemory_mb"),
 	output.WideCol("проект", "project_id"),
 	output.WideCol("id", "id"),
@@ -147,10 +150,10 @@ func valkeyGetCommand(env *Env) *cobra.Command {
 
 func valkeyCreateCommand(env *Env) *cobra.Command {
 	var (
-		name, plan, version, topology string
-		region, vpc                   string
-		eviction, persistence         string
-		allowlist                     []string
+		name, plan, version, topology  string
+		region, vpc                    string
+		eviction, persistence, tlsMode string
+		allowlist                      []string
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -169,7 +172,7 @@ func valkeyCreateCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			v, err := call(c.ValkeyCreateClusterWithResponse(cmd.Context(), project, tatnet.CreateValkeyClusterRequest{
+			v, err := call(c.ValkeyCreateClusterWithBodyWithResponse(cmd.Context(), project, "application/json", valkeyTLSBody(tatnet.CreateValkeyClusterRequest{
 				Name:           name,
 				PlanId:         plan,
 				ValkeyVersion:  optStr(cmd, "version", version),
@@ -179,7 +182,7 @@ func valkeyCreateCommand(env *Env) *cobra.Command {
 				EvictionPolicy: optStr(cmd, "eviction", eviction),
 				Persistence:    optStr(cmd, "persistence", persistence),
 				IpAllowlist:    optStrSlice(cmd, "allow", allowlist),
-			}))
+			}, optStr(cmd, "tls-mode", tlsMode))))
 			if err != nil {
 				return err
 			}
@@ -198,6 +201,7 @@ func valkeyCreateCommand(env *Env) *cobra.Command {
 	f.StringVar(&vpc, "vpc", "", "id приватной сети")
 	f.StringVar(&eviction, "eviction", "", "политика вытеснения")
 	f.StringVar(&persistence, "persistence", "", "режим сохранения на диск")
+	f.StringVar(&tlsMode, "tls-mode", "", "TLS: disabled, preferred или required (по умолчанию required)")
 	f.StringSliceVar(&allowlist, "allow", nil, "разрешённые CIDR (можно повторять)")
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("plan")
@@ -307,7 +311,7 @@ func valkeyTopologyCommand(env *Env) *cobra.Command {
 }
 
 func valkeyParamsCommand(env *Env) *cobra.Command {
-	var eviction, persistence string
+	var eviction, persistence, tlsMode string
 	cmd := &cobra.Command{
 		Use:   "params <кластер>",
 		Short: "Изменить параметры кэша",
@@ -320,14 +324,14 @@ func valkeyParamsCommand(env *Env) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if !cmd.Flags().Changed("eviction") && !cmd.Flags().Changed("persistence") {
-				return fmt.Errorf("укажите --eviction и/или --persistence")
+			if !cmd.Flags().Changed("eviction") && !cmd.Flags().Changed("persistence") && !cmd.Flags().Changed("tls-mode") {
+				return fmt.Errorf("укажите --eviction, --persistence или --tls-mode")
 			}
-			v, err := call(c.ValkeyUpdateParamsWithResponse(cmd.Context(), project, id,
-				tatnet.UpdateValkeyParamsRequest{
+			v, err := call(c.ValkeyUpdateParamsWithBodyWithResponse(cmd.Context(), project, id, "application/json",
+				valkeyTLSBody(tatnet.UpdateValkeyParamsRequest{
 					EvictionPolicy: optStr(cmd, "eviction", eviction),
 					Persistence:    optStr(cmd, "persistence", persistence),
-				}))
+				}, optStr(cmd, "tls-mode", tlsMode))))
 			if err != nil {
 				return err
 			}
@@ -336,6 +340,7 @@ func valkeyParamsCommand(env *Env) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&eviction, "eviction", "", "политика вытеснения")
 	cmd.Flags().StringVar(&persistence, "persistence", "", "режим сохранения на диск")
+	cmd.Flags().StringVar(&tlsMode, "tls-mode", "", "TLS: disabled, preferred или required")
 	return cmd
 }
 
@@ -498,4 +503,17 @@ func valkeyRegionsCommand(env *Env) *cobra.Command {
 			})
 		},
 	}
+}
+
+// The SDK body overload lets optional API fields ship independently of a new
+// SDK release. The API remains the sole owner of validation and authorization.
+func valkeyTLSBody(body any, mode *string) *bytes.Reader {
+	data, _ := json.Marshal(body)
+	var fields map[string]any
+	_ = json.Unmarshal(data, &fields)
+	if mode != nil {
+		fields["tls_mode"] = *mode
+	}
+	data, _ = json.Marshal(fields)
+	return bytes.NewReader(data)
 }

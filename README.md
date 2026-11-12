@@ -508,3 +508,15 @@ committed-offset group lag. `tatnet kafka history <id> --metric consumer_lag
 sets per-group console warnings; `--disable-lag` disables them. Settings apply
 asynchronously. Unknown lag remains null; lag is an offset distance, not time.
 All commands use the selected project and existing API authorization.
+
+
+### Valkey client TLS
+
+`tatnet valkey create --tls-mode required|preferred|disabled` selects the client
+transport policy (default: required). Change it using
+`tatnet valkey params <cluster> --tls-mode preferred`. All modes use the same
+endpoint port. The API validates the policy and rejects changes on old nodes
+until replacement is complete. A successful write returns intent; inspect
+`parameters_applied` before treating it as active. The SDK's supported JSON-body
+overload carries this optional field without requiring an SDK release; the
+embedded contract stays synchronized with the pinned SDK version.
