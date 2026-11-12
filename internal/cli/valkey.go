@@ -238,7 +238,7 @@ func valkeyCaCommand(env *Env) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ca <кластер>",
 		Short: "Сертификат CA кластера",
-		Long: "Valkey принимает только TLS — подключаться нужно по rediss://\n" +
+		Long: "Сертификат нужен для проверки TLS при подключении по rediss://.\n" +
 			"с этим сертификатом.",
 		Annotations: ops("valkey_get_cluster_ca"),
 		Args:        cobra.ExactArgs(1),
