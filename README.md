@@ -12,6 +12,13 @@
 сборок и автодеплоя. Требуется `app:update`. Чтобы выкатить выбранную ветку,
 отдельно выполните `tatnet app deploy <приложение>`.
 
+Для первого деплоя бессерверной функции передайте код региона через `tatnet api`:
+
+```sh
+tatnet api "/projects/$PROJECT_ID/function-regions" --allow-unknown
+tatnet api "/projects/$PROJECT_ID/functions/$FUNCTION_ID/deploy" -F region=kzn-1
+```
+
 Managed Kafka: `tatnet kafka regions` показывает почасовые ставки и процент
 управления; `tatnet --project <id> kafka get <cluster-id>` — стоимость часа,
 управление и прогноз за 730 часов. Оплата: VM + 30% за управление, IPv4 и
