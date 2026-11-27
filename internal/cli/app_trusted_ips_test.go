@@ -22,9 +22,9 @@ func TestAppTrustedIPs(t *testing.T) {
 		t.Run(tt.action, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
-				case "/v1/apps/" + appID:
+				case "/apps/" + appID:
 					_, _ = w.Write([]byte(`{"id":"` + appID + `","project_id":"` + projectID + `"}`))
-				case "/v1/projects/" + projectID + "/apps/" + appID + "/trusted-ips":
+				case "/projects/" + projectID + "/apps/" + appID + "/trusted-ips":
 					if r.Method != tt.method {
 						t.Errorf("method = %s, want %s", r.Method, tt.method)
 					}
