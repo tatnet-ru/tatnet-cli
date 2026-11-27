@@ -56,12 +56,5 @@ func runAppTrustedIPs(cmd *cobra.Command, env *Env, app, method string, ips []st
 			return err
 		}
 	}
-	status, _, data, err := env.rawRequest(cmd, method, path, body, nil)
-	if err != nil {
-		return err
-	}
-	if status >= 400 {
-		return &APIError{Status: status, Detail: detailOf(data), Body: data}
-	}
-	return printRaw(cmd, env, data)
+	return requestRawJSON(env, cmd, method, path, body)
 }

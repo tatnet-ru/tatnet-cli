@@ -359,6 +359,25 @@
         "title": "AppJobUpdateRequest",
         "type": "object"
       },
+      "AppTrustedIPs": {
+        "additionalProperties": false,
+        "properties": {
+          "trusted_ips": {
+            "description": "IPv4 addresses or CIDR networks. An empty list disables protection.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Trusted Ips",
+            "type": "array"
+          }
+        },
+        "required": [
+          "trusted_ips"
+        ],
+        "title": "AppTrustedIPs",
+        "type": "object"
+      },
       "AttachInterfaceResponse": {
         "properties": {
           "interface_id": {
@@ -21882,6 +21901,126 @@
         "summary": "Run an app job now",
         "tags": [
           "app-jobs"
+        ]
+      }
+    },
+    "/projects/{project_id}/apps/{app_id}/trusted-ips": {
+      "get": {
+        "operationId": "apps_get_app_trusted_ips",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppTrustedIPs"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Get the IPv4 allowlist for all deployments of an app",
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "apps_set_app_trusted_ips",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppTrustedIPs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppTrustedIPs"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "TatNetAPIKey": []
+          }
+        ],
+        "summary": "Replace the IPv4 allowlist for all deployments of an app",
+        "tags": [
+          "apps"
         ]
       }
     },

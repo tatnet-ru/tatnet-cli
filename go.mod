@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.9
-	github.com/tatnet-ru/tatnet-go v0.21.0
+	github.com/tatnet-ru/tatnet-go v0.21.1-0.20261127095727-4b9a937ad5c4
 	golang.org/x/term v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 )
